@@ -80,19 +80,10 @@ function setCoachHeader(user) {
   const last = (user?.last_name || "").trim();
   const full = [first, last].filter(Boolean).join(" ").trim();
   const nameEl = $("#coach-display-name");
-  const emailEl = $("#coach-email");
-  if (!nameEl || !emailEl) return;
-  const email = (user?.email || "").trim();
-  if (full) {
-    nameEl.textContent = full;
-    emailEl.textContent = email;
-  } else if (email) {
-    nameEl.textContent = email;
-    emailEl.textContent = "";
-  } else {
-    nameEl.textContent = "";
-    emailEl.textContent = "";
-  }
+  if (!nameEl) return;
+  if (full) nameEl.textContent = full;
+  else if (user?.id) nameEl.textContent = "Coach";
+  else nameEl.textContent = "";
 }
 
 async function bootstrapSession() {

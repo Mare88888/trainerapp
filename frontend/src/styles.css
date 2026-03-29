@@ -276,10 +276,9 @@ body {
 
 .coach-identity {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.1rem;
-  max-width: min(240px, 42vw);
+  align-items: center;
+  justify-content: flex-end;
+  max-width: min(260px, 45vw);
   text-align: right;
 }
 
@@ -291,19 +290,6 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   width: 100%;
-}
-
-.coach-email {
-  font-size: 0.78rem;
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 100%;
-}
-
-.coach-email:empty {
-  display: none;
 }
 
 .shell {
