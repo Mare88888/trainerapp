@@ -5,7 +5,7 @@ use axum::{
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::auth::AuthUser;
+use crate::auth::CoachUser;
 use crate::error::AppResult;
 use crate::models::{
     AddExerciseToWorkoutRequest, AddExerciseToWorkoutResponse, AddSetRequest, CreateWorkoutRequest,
@@ -15,7 +15,7 @@ use crate::repositories::{ExercisePrRow, ExerciseVolumeRow};
 use crate::AppState;
 
 pub async fn create_workout(
-    auth: AuthUser,
+    auth: CoachUser,
     State(state): State<AppState>,
     Json(req): Json<CreateWorkoutRequest>,
 ) -> AppResult<Json<Workout>> {
@@ -24,7 +24,7 @@ pub async fn create_workout(
 }
 
 pub async fn add_workout_exercise(
-    auth: AuthUser,
+    auth: CoachUser,
     State(state): State<AppState>,
     Path(workout_id): Path<Uuid>,
     Json(req): Json<AddExerciseToWorkoutRequest>,
@@ -37,7 +37,7 @@ pub async fn add_workout_exercise(
 }
 
 pub async fn add_set(
-    auth: AuthUser,
+    auth: CoachUser,
     State(state): State<AppState>,
     Path(workout_exercise_id): Path<Uuid>,
     Json(req): Json<AddSetRequest>,
@@ -55,7 +55,7 @@ pub struct TraineeFilterQuery {
 }
 
 pub async fn list_workouts(
-    auth: AuthUser,
+    auth: CoachUser,
     State(state): State<AppState>,
     Query(q): Query<TraineeFilterQuery>,
 ) -> AppResult<Json<Vec<WorkoutDetail>>> {
@@ -73,7 +73,7 @@ pub struct VolumeQuery {
 }
 
 pub async fn volume_stats(
-    auth: AuthUser,
+    auth: CoachUser,
     State(state): State<AppState>,
     Query(q): Query<VolumeQuery>,
 ) -> AppResult<Json<Vec<ExerciseVolumeRow>>> {
@@ -85,7 +85,7 @@ pub async fn volume_stats(
 }
 
 pub async fn personal_records(
-    auth: AuthUser,
+    auth: CoachUser,
     State(state): State<AppState>,
     Query(q): Query<TraineeFilterQuery>,
 ) -> AppResult<Json<Vec<ExercisePrRow>>> {

@@ -144,7 +144,7 @@
       <main class="shell">
         <section class="panel trainees-panel">
           <div class="panel-head">
-            <h2>Trainees</h2>
+            <h2>My Trainees</h2>
             <button id="toggle-add-trainee" type="button" class="btn-primary sm">+ Add</button>
           </div>
 
@@ -158,6 +158,10 @@
               <label class="field">
                 <span>Email (optional)</span>
                 <input id="nt-email" type="email" placeholder="alex@email.com" />
+              </label>
+              <label class="field">
+                <span>Age</span>
+                <input id="nt-age" type="number" min="1" max="120" step="1" placeholder="25" />
               </label>
               <label class="field">
                 <span>Height (cm)</span>
@@ -194,6 +198,7 @@
               </div>
               <button id="toggle-edit-trainee" type="button" class="btn-secondary sm">Edit profile</button>
             </div>
+            <div id="basic-stats" class="basic-stats"></div>
 
             <form id="form-edit-trainee" class="card edit-form hidden">
               <div class="form-grid">
@@ -204,6 +209,10 @@
                 <label class="field">
                   <span>Email</span>
                   <input id="et-email" type="email" />
+                </label>
+                <label class="field">
+                  <span>Age</span>
+                  <input id="et-age" type="number" min="1" max="120" step="1" />
                 </label>
                 <label class="field">
                   <span>Height (cm)</span>

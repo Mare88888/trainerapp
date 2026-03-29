@@ -11,6 +11,7 @@ pub trait TraineeRepository: Send + Sync {
         &self,
         coach_id: Uuid,
         display_name: &str,
+        age: Option<i32>,
         email: Option<&str>,
         height_cm: Option<f64>,
         weight_kg: Option<f64>,
@@ -26,11 +27,14 @@ pub trait TraineeRepository: Send + Sync {
         trainee_id: Uuid,
         coach_id: Uuid,
         display_name: Option<&str>,
+        age: Option<i32>,
         email: Option<&str>,
         height_cm: Option<f64>,
         weight_kg: Option<f64>,
         notes: Option<&str>,
     ) -> AppResult<Trainee>;
+
+    async fn delete_trainee(&self, trainee_id: Uuid, coach_id: Uuid) -> AppResult<()>;
 
     async fn log_metric(
         &self,
@@ -64,6 +68,7 @@ impl TraineeRepository for PgTraineeRepository {
         &self,
         coach_id: Uuid,
         display_name: &str,
+        age: Option<i32>,
         email: Option<&str>,
         height_cm: Option<f64>,
         weight_kg: Option<f64>,
@@ -71,13 +76,14 @@ impl TraineeRepository for PgTraineeRepository {
     ) -> AppResult<Trainee> {
         let t = sqlx::query_as::<_, Trainee>(
             r#"
-            INSERT INTO trainees (coach_id, display_name, email, height_cm, weight_kg, notes)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, coach_id, display_name, email, height_cm, weight_kg, notes, created_at
+            INSERT INTO trainees (coach_id, display_name, age, email, height_cm, weight_kg, notes)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id, coach_id, display_name, age, email, height_cm, weight_kg, notes, created_at
             "#,
         )
         .bind(coach_id)
         .bind(display_name)
+        .bind(age)
         .bind(email)
         .bind(height_cm)
         .bind(weight_kg)
@@ -91,7 +97,7 @@ impl TraineeRepository for PgTraineeRepository {
     async fn list_by_coach(&self, coach_id: Uuid) -> AppResult<Vec<Trainee>> {
         let list = sqlx::query_as::<_, Trainee>(
             r#"
-            SELECT id, coach_id, display_name, email, height_cm, weight_kg, notes, created_at
+            SELECT id, coach_id, display_name, age, email, height_cm, weight_kg, notes, created_at
             FROM trainees
             WHERE coach_id = $1
             ORDER BY display_name ASC
@@ -107,7 +113,7 @@ impl TraineeRepository for PgTraineeRepository {
     async fn get_for_coach(&self, trainee_id: Uuid, coach_id: Uuid) -> AppResult<Trainee> {
         let t = sqlx::query_as::<_, Trainee>(
             r#"
-            SELECT id, coach_id, display_name, email, height_cm, weight_kg, notes, created_at
+            SELECT id, coach_id, display_name, age, email, height_cm, weight_kg, notes, created_at
             FROM trainees
             WHERE id = $1 AND coach_id = $2
             "#,
@@ -126,6 +132,7 @@ impl TraineeRepository for PgTraineeRepository {
         trainee_id: Uuid,
         coach_id: Uuid,
         display_name: Option<&str>,
+        age: Option<i32>,
         email: Option<&str>,
         height_cm: Option<f64>,
         weight_kg: Option<f64>,
@@ -137,17 +144,19 @@ impl TraineeRepository for PgTraineeRepository {
             r#"
             UPDATE trainees SET
                 display_name = COALESCE($3, display_name),
-                email = COALESCE($4, email),
-                height_cm = COALESCE($5, height_cm),
-                weight_kg = COALESCE($6, weight_kg),
-                notes = COALESCE($7, notes)
+                age = COALESCE($4, age),
+                email = COALESCE($5, email),
+                height_cm = COALESCE($6, height_cm),
+                weight_kg = COALESCE($7, weight_kg),
+                notes = COALESCE($8, notes)
             WHERE id = $1 AND coach_id = $2
-            RETURNING id, coach_id, display_name, email, height_cm, weight_kg, notes, created_at
+            RETURNING id, coach_id, display_name, age, email, height_cm, weight_kg, notes, created_at
             "#,
         )
         .bind(trainee_id)
         .bind(coach_id)
         .bind(display_name)
+        .bind(age)
         .bind(email)
         .bind(height_cm)
         .bind(weight_kg)
@@ -156,6 +165,24 @@ impl TraineeRepository for PgTraineeRepository {
         .await?;
 
         Ok(t)
+    }
+
+    async fn delete_trainee(&self, trainee_id: Uuid, coach_id: Uuid) -> AppResult<()> {
+        let result = sqlx::query(
+            r#"
+            DELETE FROM trainees
+            WHERE id = $1 AND coach_id = $2
+            "#,
+        )
+        .bind(trainee_id)
+        .bind(coach_id)
+        .execute(&self.pool)
+        .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(AppError::NotFound);
+        }
+        Ok(())
     }
 
     async fn log_metric(

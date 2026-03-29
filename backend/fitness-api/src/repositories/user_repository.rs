@@ -41,9 +41,9 @@ impl UserRepository for PgUserRepository {
     ) -> AppResult<User> {
         let row = sqlx::query_as::<_, User>(
             r#"
-            INSERT INTO users (email, password_hash, first_name, last_name)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, email, first_name, last_name, password_hash, created_at
+            INSERT INTO users (email, password_hash, first_name, last_name, role)
+            VALUES ($1, $2, $3, $4, 'coach')
+            RETURNING id, email, first_name, last_name, role, password_hash, created_at
             "#,
         )
         .bind(email)
@@ -65,7 +65,7 @@ impl UserRepository for PgUserRepository {
 
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
         let u = sqlx::query_as::<_, User>(
-            r#"SELECT id, email, first_name, last_name, password_hash, created_at FROM users WHERE email = $1"#,
+            r#"SELECT id, email, first_name, last_name, role, password_hash, created_at FROM users WHERE email = $1"#,
         )
         .bind(email)
         .fetch_optional(&self.pool)
@@ -75,7 +75,7 @@ impl UserRepository for PgUserRepository {
 
     async fn find_by_id(&self, id: Uuid) -> AppResult<Option<User>> {
         let u = sqlx::query_as::<_, User>(
-            r#"SELECT id, email, first_name, last_name, password_hash, created_at FROM users WHERE id = $1"#,
+            r#"SELECT id, email, first_name, last_name, role, password_hash, created_at FROM users WHERE id = $1"#,
         )
         .bind(id)
         .fetch_optional(&self.pool)

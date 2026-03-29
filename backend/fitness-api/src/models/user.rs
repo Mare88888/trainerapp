@@ -10,6 +10,7 @@ pub struct User {
     pub email: String,
     pub first_name: String,
     pub last_name: String,
+    pub role: String,
     #[serde(skip_serializing)]
     pub password_hash: String,
     pub created_at: DateTime<Utc>,
@@ -47,6 +48,7 @@ pub struct UserPublic {
     pub email: String,
     pub first_name: String,
     pub last_name: String,
+    pub role: String,
 }
 
 impl From<User> for UserPublic {
@@ -56,6 +58,7 @@ impl From<User> for UserPublic {
             email: u.email,
             first_name: u.first_name,
             last_name: u.last_name,
+            role: u.role,
         }
     }
 }

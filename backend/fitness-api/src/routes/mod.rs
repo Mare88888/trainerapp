@@ -10,10 +10,19 @@ pub fn api_routes() -> Router<AppState> {
         .route("/api/auth/register", post(handlers::register))
         .route("/api/auth/login", post(handlers::login))
         .route("/api/auth/me", get(handlers::me))
+        .route("/trainees", get(handlers::list_trainees).post(handlers::create_trainee))
+        .route(
+            "/trainees/{trainee_id}",
+            get(handlers::trainee_details)
+                .put(handlers::replace_trainee_profile)
+                .delete(handlers::delete_trainee),
+        )
         .route("/api/trainees", get(handlers::list_trainees).post(handlers::create_trainee))
         .route(
             "/api/trainees/{trainee_id}",
-            get(handlers::trainee_dashboard).patch(handlers::update_trainee),
+            get(handlers::trainee_dashboard)
+                .patch(handlers::update_trainee)
+                .delete(handlers::delete_trainee),
         )
         .route(
             "/api/trainees/{trainee_id}/metrics",

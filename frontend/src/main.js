@@ -1,8 +1,19 @@
 const TOKEN_KEY = "token";
 const USER_KEY = "coach_user";
 
-const api = (path, opts = {}) => {
-  const token = localStorage.getItem(TOKEN_KEY);
+const authState = {
+  token: localStorage.getItem(TOKEN_KEY),
+  user: (() => {
+    try {
+      return JSON.parse(localStorage.getItem(USER_KEY) || "null");
+    } catch {
+      return null;
+    }
+  })(),
+};
+
+const api = async (path, opts = {}) => {
+  const token = authState.token;
   const headers = new Headers(opts.headers || {});
   if (!headers.has("Content-Type") && opts.body) {
     headers.set("Content-Type", "application/json");
@@ -10,7 +21,15 @@ const api = (path, opts = {}) => {
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
-  return fetch(path, { ...opts, headers });
+  const res = await fetch(path, { ...opts, headers });
+
+  // Global auth guard for protected endpoints.
+  if (opts.authRequired && res.status === 401) {
+    clearSession();
+    showLogin();
+    setAuthMessage("Session expired. Please log in again.");
+  }
+  return res;
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -59,8 +78,6 @@ function formatAuthError(res, body) {
 function showLogin() {
   $("#view-login").classList.remove("hidden");
   $("#view-app").classList.add("hidden");
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
   selectedTraineeId = null;
   showSignupPanel();
 }
@@ -71,8 +88,23 @@ function showApp() {
 }
 
 function saveSession(token, user) {
+  authState.token = token;
+  authState.user = user;
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+function clearSession() {
+  authState.token = null;
+  authState.user = null;
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+function onAuthSuccess(token, user) {
+  saveSession(token, user);
+  setCoachHeader(user);
+  showApp();
 }
 
 function setCoachHeader(user) {
@@ -87,13 +119,14 @@ function setCoachHeader(user) {
 }
 
 async function bootstrapSession() {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = authState.token;
   if (!token) {
     showLogin();
     return;
   }
-  const res = await api("/api/auth/me");
+  const res = await api("/api/auth/me", { authRequired: true });
   if (!res.ok) {
+    clearSession();
     showLogin();
     return;
   }
@@ -129,9 +162,10 @@ function renderTraineeList(trainees) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "trainee-item" + (selectedTraineeId === t.id ? " active" : "");
+    const age = t.age != null ? `${t.age}y` : "—";
     const h = t.height_cm != null ? `${t.height_cm} cm` : "—";
     const w = t.weight_kg != null ? `${t.weight_kg} kg` : "—";
-    btn.innerHTML = `<strong>${escapeHtml(t.display_name)}</strong><span class="sub">${h} · ${w}</span>`;
+    btn.innerHTML = `<strong>${escapeHtml(t.display_name)}</strong><span class="sub">${age} · ${h} · ${w}</span>`;
     btn.addEventListener("click", () => selectTrainee(t.id));
     li.appendChild(btn);
     ul.appendChild(li);
@@ -145,7 +179,7 @@ function escapeHtml(s) {
 }
 
 async function refreshTrainees() {
-  const res = await api("/api/trainees");
+  const res = await api("/api/trainees", { authRequired: true });
   if (!res.ok) return;
   const list = await res.json();
   renderTraineeList(list);
@@ -157,7 +191,7 @@ async function selectTrainee(id) {
   $("#detail-empty").classList.add("hidden");
   $("#detail-content").classList.remove("hidden");
 
-  const res = await api(`/api/trainees/${id}`);
+  const res = await api(`/api/trainees/${id}`, { authRequired: true });
   if (!res.ok) {
     setAuthMessage("Could not load trainee.", false);
     return;
@@ -167,13 +201,26 @@ async function selectTrainee(id) {
 
   $("#dt-name").textContent = trainee.display_name;
   const parts = [];
+  if (trainee.age != null) parts.push(`${trainee.age} years`);
   if (trainee.height_cm != null) parts.push(`${trainee.height_cm} cm`);
   if (trainee.weight_kg != null) parts.push(`${trainee.weight_kg} kg`);
   if (trainee.email) parts.push(trainee.email);
   $("#dt-meta").textContent = parts.join(" · ") || "No measurements yet";
+  $("#basic-stats").innerHTML = `
+    <div class="stat-card"><span class="label">Age</span><span class="value">${
+      trainee.age != null ? `${trainee.age} years` : "—"
+    }</span></div>
+    <div class="stat-card"><span class="label">Height</span><span class="value">${
+      trainee.height_cm != null ? `${trainee.height_cm} cm` : "—"
+    }</span></div>
+    <div class="stat-card"><span class="label">Weight</span><span class="value">${
+      trainee.weight_kg != null ? `${trainee.weight_kg} kg` : "—"
+    }</span></div>
+  `;
 
   $("#et-name").value = trainee.display_name;
   $("#et-email").value = trainee.email || "";
+  $("#et-age").value = trainee.age ?? "";
   $("#et-height").value = trainee.height_cm ?? "";
   $("#et-weight").value = trainee.weight_kg ?? "";
   $("#et-notes").value = trainee.notes || "";
@@ -261,10 +308,8 @@ $("#form-signup").addEventListener("submit", async (e) => {
   });
   const body = await res.json().catch(() => ({}));
   if (res.ok && body.token) {
-    saveSession(body.token, body.user);
     setAuthMessage("Account created — you’re in.", true);
-    setCoachHeader(body.user);
-    showApp();
+    onAuthSuccess(body.token, body.user);
     await refreshTrainees();
   } else {
     setAuthMessage(formatAuthError(res, body));
@@ -292,9 +337,7 @@ $("#form-login").addEventListener("submit", async (e) => {
   });
   const body = await res.json().catch(() => ({}));
   if (res.ok && body.token) {
-    saveSession(body.token, body.user);
-    setCoachHeader(body.user);
-    showApp();
+    onAuthSuccess(body.token, body.user);
     await refreshTrainees();
   } else {
     setAuthMessage(formatAuthError(res, body));
@@ -302,6 +345,7 @@ $("#form-login").addEventListener("submit", async (e) => {
 });
 
 $("#logout").addEventListener("click", () => {
+  clearSession();
   setCoachHeader({});
   showLogin();
   $("#detail-empty").classList.remove("hidden");
@@ -324,6 +368,7 @@ $("#form-add-trainee").addEventListener("submit", async (e) => {
   const payload = {
     display_name: name,
     email: $("#nt-email").value.trim() || null,
+    age: intOrNull($("#nt-age").value),
     height_cm: numOrNull($("#nt-height").value),
     weight_kg: numOrNull($("#nt-weight").value),
     notes: $("#nt-notes").value.trim() || null,
@@ -331,6 +376,7 @@ $("#form-add-trainee").addEventListener("submit", async (e) => {
   const res = await api("/api/trainees", {
     method: "POST",
     body: JSON.stringify(payload),
+    authRequired: true,
   });
   if (res.ok) {
     $("#form-add-trainee").reset();
@@ -343,6 +389,14 @@ function numOrNull(v) {
   if (v === "" || v == null) return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+function intOrNull(v) {
+  if (v === "" || v == null) return null;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  const i = Math.trunc(n);
+  return i > 0 ? i : null;
 }
 
 $("#toggle-edit-trainee").addEventListener("click", () => {
@@ -359,13 +413,15 @@ $("#form-edit-trainee").addEventListener("submit", async (e) => {
   const payload = {
     display_name: $("#et-name").value.trim() || null,
     email: $("#et-email").value.trim() || null,
+    age: intOrNull($("#et-age").value),
     height_cm: numOrNull($("#et-height").value),
     weight_kg: numOrNull($("#et-weight").value),
     notes: $("#et-notes").value.trim() || null,
   };
   const res = await api(`/api/trainees/${selectedTraineeId}`, {
-    method: "PATCH",
+    method: "PUT",
     body: JSON.stringify(payload),
+    authRequired: true,
   });
   if (res.ok) {
     $("#form-edit-trainee").classList.add("hidden");
@@ -384,6 +440,7 @@ $("#btn-log-metric").addEventListener("click", async () => {
       weight_kg: w,
       height_cm: numOrNull($("#log-height").value),
     }),
+    authRequired: true,
   });
   if (res.ok) {
     $("#log-weight").value = "";
@@ -404,6 +461,7 @@ $("#btn-create-workout").addEventListener("click", async () => {
       notes,
       trainee_id: selectedTraineeId,
     }),
+    authRequired: true,
   });
   if (res.ok) {
     $("#wo-title").value = "";

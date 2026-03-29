@@ -34,6 +34,7 @@ impl AuthService {
             .await?;
         let token = sign_token(
             user.id,
+            &user.role,
             &self.config.jwt_secret,
             self.config.jwt_expiration_hours,
         )?;
@@ -51,6 +52,10 @@ impl AuthService {
             .await?
             .ok_or(AppError::Unauthorized)?;
 
+        if user.role != "coach" {
+            return Err(AppError::Forbidden);
+        }
+
         let ok = verify_password(&req.password, &user.password_hash)?;
         if !ok {
             return Err(AppError::Unauthorized);
@@ -58,6 +63,7 @@ impl AuthService {
 
         let token = sign_token(
             user.id,
+            &user.role,
             &self.config.jwt_secret,
             self.config.jwt_expiration_hours,
         )?;
@@ -73,6 +79,9 @@ impl AuthService {
             .find_by_id(user_id)
             .await?
             .ok_or(AppError::Unauthorized)?;
+        if user.role != "coach" {
+            return Err(AppError::Forbidden);
+        }
         Ok(UserPublic::from(user))
     }
 }

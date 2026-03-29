@@ -9,6 +9,7 @@ pub struct Trainee {
     pub id: Uuid,
     pub coach_id: Uuid,
     pub display_name: String,
+    pub age: Option<i32>,
     pub email: Option<String>,
     pub height_cm: Option<f64>,
     pub weight_kg: Option<f64>,
@@ -20,6 +21,7 @@ pub struct Trainee {
 pub struct CreateTraineeRequest {
     #[validate(length(min = 1, max = 255))]
     pub display_name: String,
+    pub age: Option<i32>,
     pub email: Option<String>,
     pub height_cm: Option<f64>,
     pub weight_kg: Option<f64>,
@@ -29,6 +31,7 @@ pub struct CreateTraineeRequest {
 #[derive(Debug, Deserialize)]
 pub struct UpdateTraineeRequest {
     pub display_name: Option<String>,
+    pub age: Option<i32>,
     pub email: Option<String>,
     pub height_cm: Option<f64>,
     pub weight_kg: Option<f64>,

@@ -42,6 +42,7 @@ impl TraineeService {
             .create_trainee(
                 coach_id,
                 &req.display_name,
+                req.age,
                 req.email.as_deref(),
                 req.height_cm,
                 req.weight_kg,
@@ -72,12 +73,21 @@ impl TraineeService {
                 trainee_id,
                 coach_id,
                 req.display_name.as_deref(),
+                req.age,
                 req.email.as_deref(),
                 req.height_cm,
                 req.weight_kg,
                 req.notes.as_deref(),
             )
             .await
+    }
+
+    pub async fn get_trainee(&self, coach_id: Uuid, trainee_id: Uuid) -> AppResult<Trainee> {
+        self.trainees.get_for_coach(trainee_id, coach_id).await
+    }
+
+    pub async fn delete_trainee(&self, coach_id: Uuid, trainee_id: Uuid) -> AppResult<()> {
+        self.trainees.delete_trainee(trainee_id, coach_id).await
     }
 
     pub async fn log_metric(

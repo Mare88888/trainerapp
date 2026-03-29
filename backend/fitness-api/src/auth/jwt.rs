@@ -8,13 +8,26 @@ use crate::error::{AppError, AppResult};
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
     sub: String,
+    role: String,
     exp: i64,
 }
 
-pub fn sign_token(user_id: Uuid, secret: &str, expiration_hours: i64) -> AppResult<String> {
+#[derive(Debug, Clone)]
+pub struct AuthClaims {
+    pub user_id: Uuid,
+    pub role: String,
+}
+
+pub fn sign_token(
+    user_id: Uuid,
+    role: &str,
+    secret: &str,
+    expiration_hours: i64,
+) -> AppResult<String> {
     let exp = Utc::now() + Duration::hours(expiration_hours);
     let claims = Claims {
         sub: user_id.to_string(),
+        role: role.to_string(),
         exp: exp.timestamp(),
     };
     encode(
@@ -25,7 +38,7 @@ pub fn sign_token(user_id: Uuid, secret: &str, expiration_hours: i64) -> AppResu
     .map_err(|e| AppError::Auth(e.to_string()))
 }
 
-pub fn verify_token(token: &str, secret: &str) -> AppResult<Uuid> {
+pub fn verify_token(token: &str, secret: &str) -> AppResult<AuthClaims> {
     let data = decode::<Claims>(
         token,
         &DecodingKey::from_secret(secret.as_bytes()),
@@ -33,6 +46,10 @@ pub fn verify_token(token: &str, secret: &str) -> AppResult<Uuid> {
     )
     .map_err(|_| AppError::Unauthorized)?;
 
-    let sub = data.claims.sub;
-    Uuid::parse_str(&sub).map_err(|_| AppError::Auth("invalid subject".into()))
+    let user_id =
+        Uuid::parse_str(&data.claims.sub).map_err(|_| AppError::Auth("invalid subject".into()))?;
+    Ok(AuthClaims {
+        user_id,
+        role: data.claims.role,
+    })
 }
