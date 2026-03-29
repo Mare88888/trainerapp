@@ -24,6 +24,13 @@ pub struct CreateWorkoutRequest {
     pub trainee_id: Option<Uuid>,
 }
 
+#[derive(Debug, Deserialize, Validate)]
+pub struct CreateTraineeWorkoutRequest {
+    #[validate(length(min = 1, max = 255))]
+    pub title: String,
+    pub notes: Option<String>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct WorkoutDetailExercise {
     pub workout_exercise_id: Uuid,

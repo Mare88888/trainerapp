@@ -8,8 +8,8 @@ use uuid::Uuid;
 use crate::auth::CoachUser;
 use crate::error::AppResult;
 use crate::models::{
-    AddExerciseToWorkoutRequest, AddExerciseToWorkoutResponse, AddSetRequest, CreateWorkoutRequest,
-    Set, Workout, WorkoutDetail,
+    AddExerciseToWorkoutRequest, AddExerciseToWorkoutResponse, AddSetRequest,
+    CreateTraineeWorkoutRequest, CreateWorkoutRequest, Set, Workout, WorkoutDetail,
 };
 use crate::repositories::{ExercisePrRow, ExerciseVolumeRow};
 use crate::AppState;
@@ -47,6 +47,61 @@ pub async fn add_set(
         .add_set(auth.id, workout_exercise_id, req)
         .await?;
     Ok(Json(s))
+}
+
+pub async fn create_workout_for_trainee(
+    auth: CoachUser,
+    State(state): State<AppState>,
+    Path(trainee_id): Path<Uuid>,
+    Json(req): Json<CreateTraineeWorkoutRequest>,
+) -> AppResult<Json<Workout>> {
+    let w = state
+        .workout_service
+        .create_workout_for_trainee(auth.id, trainee_id, req)
+        .await?;
+    Ok(Json(w))
+}
+
+pub async fn list_trainee_workouts(
+    auth: CoachUser,
+    State(state): State<AppState>,
+    Path(trainee_id): Path<Uuid>,
+) -> AppResult<Json<Vec<Workout>>> {
+    let workouts = state
+        .workout_service
+        .list_workouts_for_trainee(auth.id, trainee_id)
+        .await?;
+    Ok(Json(workouts))
+}
+
+pub async fn workout_detail(
+    auth: CoachUser,
+    State(state): State<AppState>,
+    Path(workout_id): Path<Uuid>,
+) -> AppResult<Json<WorkoutDetail>> {
+    let detail = state
+        .workout_service
+        .get_workout_by_id(auth.id, workout_id)
+        .await?;
+    Ok(Json(detail))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ExerciseQuery {
+    pub muscle: Option<String>,
+    pub q: Option<String>,
+}
+
+pub async fn list_exercises(
+    auth: CoachUser,
+    State(state): State<AppState>,
+    Query(q): Query<ExerciseQuery>,
+) -> AppResult<Json<Vec<crate::models::Exercise>>> {
+    let rows = state
+        .workout_service
+        .list_exercises(auth.id, q.muscle, q.q)
+        .await?;
+    Ok(Json(rows))
 }
 
 #[derive(Debug, Deserialize)]

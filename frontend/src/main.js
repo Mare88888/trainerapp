@@ -35,6 +35,9 @@ const api = async (path, opts = {}) => {
 const $ = (sel) => document.querySelector(sel);
 
 let selectedTraineeId = null;
+let activeWorkoutId = null;
+const selectedWorkoutExercises = [];
+let exerciseLibraryRows = [];
 
 function setAuthMessage(text, ok = false) {
   const el = $("#auth-message");
@@ -185,8 +188,39 @@ async function refreshTrainees() {
   renderTraineeList(list);
 }
 
+async function loadTraineeWorkouts(traineeId, fallbackSessions = []) {
+  const sess = $("#sessions-list");
+  if (!sess) return;
+  const res = await api(`/api/trainees/${traineeId}/workouts`, { authRequired: true });
+  if (!res.ok) {
+    renderWorkoutList(fallbackSessions);
+    return;
+  }
+  const workouts = await res.json();
+  const normalized = workouts.map((w) => ({ title: w.title, started_at: w.started_at }));
+  renderWorkoutList(normalized);
+}
+
+function renderWorkoutList(items) {
+  const sess = $("#sessions-list");
+  sess.innerHTML = "";
+  if (items.length) {
+    for (const s of items) {
+      const li = document.createElement("li");
+      li.innerHTML = `<span>${escapeHtml(s.title)}</span><span class="muted">${fmtDate(s.started_at)}</span>`;
+      sess.appendChild(li);
+    }
+  } else {
+    sess.innerHTML = '<li class="muted">No workouts yet.</li>';
+  }
+}
+
 async function selectTrainee(id) {
   selectedTraineeId = id;
+  activeWorkoutId = null;
+  selectedWorkoutExercises.length = 0;
+  renderSelectedExercises();
+  $("#exercise-picker")?.classList.add("hidden");
   await refreshTrainees();
   $("#detail-empty").classList.add("hidden");
   $("#detail-content").classList.remove("hidden");
@@ -255,17 +289,138 @@ async function selectTrainee(id) {
     $("#volume-table").innerHTML = '<p class="empty-table">No volume data for this trainee yet.</p>';
   }
 
-  const sess = $("#sessions-list");
-  sess.innerHTML = "";
-  if (recent_sessions.length) {
-    for (const s of recent_sessions) {
-      const li = document.createElement("li");
-      li.innerHTML = `<span>${escapeHtml(s.title)}</span><span class="muted">${fmtDate(s.started_at)}</span>`;
-      sess.appendChild(li);
-    }
-  } else {
-    sess.innerHTML = '<li class="muted">No sessions yet.</li>';
+  await loadTraineeWorkouts(id, recent_sessions);
+}
+
+function renderSelectedExercises() {
+  const host = $("#selected-exercises");
+  if (!host) return;
+  if (!selectedWorkoutExercises.length) {
+    host.innerHTML = '<p class="empty-table">No exercises added yet.</p>';
+    return;
   }
+  host.innerHTML = selectedWorkoutExercises
+    .map(
+      (e) => `
+      <div class="selected-item" data-we-id="${e.workoutExerciseId}">
+        <strong>${escapeHtml(e.name)}</strong>
+        <div class="set-row">
+          <input type="number" min="1" step="1" placeholder="Reps" data-reps="${e.workoutExerciseId}" />
+          <input type="number" min="0" step="0.5" placeholder="Weight (kg)" data-weight="${e.workoutExerciseId}" />
+          <button type="button" class="btn-secondary" data-add-set="${e.workoutExerciseId}">Add Set</button>
+        </div>
+      </div>`,
+    )
+    .join("");
+
+  host.querySelectorAll("[data-add-set]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-add-set");
+      const reps = Number(host.querySelector(`[data-reps="${id}"]`)?.value || "");
+      const weight = Number(host.querySelector(`[data-weight="${id}"]`)?.value || "");
+      if (!Number.isFinite(reps) || reps <= 0) return;
+      if (!Number.isFinite(weight) || weight < 0) return;
+      const res = await api(`/api/workout-exercises/${id}/sets`, {
+        method: "POST",
+        authRequired: true,
+        body: JSON.stringify({ reps, weight_kg: weight, is_warmup: false }),
+      });
+      if (res.ok) {
+        host.querySelector(`[data-reps="${id}"]`).value = "";
+        host.querySelector(`[data-weight="${id}"]`).value = "";
+      }
+    });
+  });
+}
+
+async function ensureWorkoutSession() {
+  if (!selectedTraineeId) return null;
+  if (activeWorkoutId) return activeWorkoutId;
+  const title = $("#wo-title").value.trim() || "Session";
+  const res = await api(`/api/trainees/${selectedTraineeId}/workouts`, {
+    method: "POST",
+    authRequired: true,
+    body: JSON.stringify({ title, notes: null }),
+  });
+  if (!res.ok) return null;
+  const workout = await res.json();
+  activeWorkoutId = workout.id;
+  await selectTrainee(selectedTraineeId);
+  return activeWorkoutId;
+}
+
+async function loadExerciseLibrary() {
+  const muscle = $("#exercise-muscle")?.value || "";
+  const q = $("#exercise-search")?.value.trim() || "";
+  const qs = new URLSearchParams();
+  if (muscle) qs.set("muscle", muscle);
+  if (q) qs.set("q", q);
+  const path = qs.toString() ? `/api/exercises?${qs.toString()}` : "/api/exercises";
+  const res = await api(path, { authRequired: true });
+  const host = $("#exercise-results");
+  if (!res.ok) {
+    if (host) {
+      host.innerHTML =
+        '<p class="empty-table" style="padding:0.6rem;">Could not load exercises. Restart backend and try again.</p>';
+    }
+    return;
+  }
+  const rows = await res.json();
+  exerciseLibraryRows = rows;
+  populateExerciseSelect(rows);
+  if (!host) return;
+  host.innerHTML = rows.length
+    ? rows
+        .map(
+          (r) => `
+        <div class="exercise-result-row">
+          <div>
+            <strong>${escapeHtml(r.name)}</strong><br />
+            <span class="muted">${escapeHtml(r.muscle || "general")}</span>
+          </div>
+          <button type="button" class="btn-secondary" data-add-ex="${encodeURIComponent(r.name)}">Add</button>
+        </div>`,
+        )
+        .join("")
+    : '<p class="empty-table" style="padding:0.6rem;">No exercises found.</p>';
+
+  host.querySelectorAll("[data-add-ex]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const name = decodeURIComponent(btn.getAttribute("data-add-ex"));
+      await addExerciseByName(name);
+    });
+  });
+}
+
+function populateExerciseSelect(rows) {
+  const select = $("#exercise-select");
+  if (!select) return;
+  select.innerHTML = '<option value="">Choose exercise...</option>';
+  for (const row of rows) {
+    const opt = document.createElement("option");
+    opt.value = row.name;
+    opt.textContent = `${row.name} (${row.muscle || "general"})`;
+    select.appendChild(opt);
+  }
+}
+
+async function addExerciseByName(name) {
+  if (!name) return;
+  const workoutId = await ensureWorkoutSession();
+  if (!workoutId) return;
+  const add = await api(`/api/workouts/${workoutId}/exercises`, {
+    method: "POST",
+    authRequired: true,
+    body: JSON.stringify({ name, notes: null }),
+  });
+  if (!add.ok) return;
+  const body = await add.json();
+  selectedWorkoutExercises.push({
+    workoutExerciseId: body.workout_exercise.id,
+    name,
+  });
+  renderSelectedExercises();
+  await loadTraineeWorkouts(selectedTraineeId);
 }
 
 $("#goto-login").addEventListener("click", () => {
@@ -452,22 +607,29 @@ $("#btn-log-metric").addEventListener("click", async () => {
 
 $("#btn-create-workout").addEventListener("click", async () => {
   if (!selectedTraineeId) return;
-  const title = $("#wo-title").value.trim() || "Session";
-  const notes = $("#wo-notes").value.trim() || null;
-  const res = await api("/api/workouts", {
-    method: "POST",
-    body: JSON.stringify({
-      title,
-      notes,
-      trainee_id: selectedTraineeId,
-    }),
-    authRequired: true,
-  });
-  if (res.ok) {
-    $("#wo-title").value = "";
-    $("#wo-notes").value = "";
-    await selectTrainee(selectedTraineeId);
+  await ensureWorkoutSession();
+});
+
+$("#btn-open-exercise-picker").addEventListener("click", async () => {
+  const picker = $("#exercise-picker");
+  picker.classList.toggle("hidden");
+  if (!picker.classList.contains("hidden")) {
+    await loadExerciseLibrary();
   }
+});
+
+$("#btn-load-exercises").addEventListener("click", async () => {
+  await loadExerciseLibrary();
+});
+
+$("#exercise-muscle").addEventListener("change", async () => {
+  // Choosing a muscle group immediately narrows to that group.
+  await loadExerciseLibrary();
+});
+
+$("#btn-add-selected-exercise").addEventListener("click", async () => {
+  const selectedName = $("#exercise-select")?.value || "";
+  await addExerciseByName(selectedName);
 });
 
 bootstrapSession();

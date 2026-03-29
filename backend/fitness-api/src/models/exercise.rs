@@ -8,5 +8,6 @@ pub struct Exercise {
     pub id: Uuid,
     pub user_id: Uuid,
     pub name: String,
+    pub muscle: String,
     pub created_at: DateTime<Utc>,
 }

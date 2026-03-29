@@ -5,7 +5,7 @@ use validator::Validate;
 use crate::error::{AppError, AppResult};
 use crate::models::{
     AddExerciseToWorkoutRequest, AddExerciseToWorkoutResponse, AddSetRequest, CreateWorkoutRequest,
-    Workout, WorkoutDetail,
+    CreateTraineeWorkoutRequest, Exercise, Workout, WorkoutDetail,
 };
 use crate::repositories::{
     ExercisePrRow, ExerciseVolumeRow, TraineeRepository, WorkoutRepository,
@@ -40,6 +40,19 @@ impl WorkoutService {
                 req.notes.as_deref(),
                 req.trainee_id,
             )
+            .await
+    }
+
+    pub async fn create_workout_for_trainee(
+        &self,
+        coach_id: Uuid,
+        trainee_id: Uuid,
+        req: CreateTraineeWorkoutRequest,
+    ) -> AppResult<Workout> {
+        req.validate().map_err(AppError::Validation)?;
+        self.trainees.get_for_coach(trainee_id, coach_id).await?;
+        self.workouts
+            .create_workout(coach_id, &req.title, req.notes.as_deref(), Some(trainee_id))
             .await
     }
 
@@ -93,6 +106,45 @@ impl WorkoutService {
         }
         self.workouts
             .list_workouts_detailed(user_id, trainee_id)
+            .await
+    }
+
+    pub async fn list_workouts_for_trainee(
+        &self,
+        coach_id: Uuid,
+        trainee_id: Uuid,
+    ) -> AppResult<Vec<Workout>> {
+        self.trainees.get_for_coach(trainee_id, coach_id).await?;
+        let details = self
+            .workouts
+            .list_workouts_detailed(coach_id, Some(trainee_id))
+            .await?;
+        Ok(details.into_iter().map(|d| d.workout).collect())
+    }
+
+    pub async fn get_workout_by_id(&self, coach_id: Uuid, workout_id: Uuid) -> AppResult<WorkoutDetail> {
+        self.workouts.assert_workout_owner(workout_id, coach_id).await?;
+        let details = self.workouts.list_workouts_detailed(coach_id, None).await?;
+        details
+            .into_iter()
+            .find(|d| d.workout.id == workout_id)
+            .ok_or(AppError::NotFound)
+    }
+
+    pub async fn list_exercises(
+        &self,
+        coach_id: Uuid,
+        muscle: Option<String>,
+        search: Option<String>,
+    ) -> AppResult<Vec<Exercise>> {
+        let muscle = muscle
+            .map(|m| m.trim().to_lowercase())
+            .filter(|m| !m.is_empty());
+        let search = search
+            .map(|q| q.trim().to_string())
+            .filter(|q| !q.is_empty());
+        self.workouts
+            .list_exercises(coach_id, muscle.as_deref(), search.as_deref(), 300)
             .await
     }
 

@@ -249,13 +249,42 @@
             </div>
 
             <div class="card">
-              <h3>Log session</h3>
-              <p class="muted small">Creates a workout attributed to this trainee (add exercises & sets via API or future UI).</p>
+              <h3>Add Workout</h3>
+              <p class="muted small">Assign a workout to this trainee.</p>
               <div class="inline-form">
                 <input id="wo-title" type="text" placeholder="Session title" class="grow" />
-                <input id="wo-notes" type="text" placeholder="Notes" class="grow" />
-                <button id="btn-create-workout" type="button" class="btn-primary">Start session</button>
+                <button id="btn-create-workout" type="button" class="btn-primary">Create Session</button>
+                <button id="btn-open-exercise-picker" type="button" class="btn-secondary">Add Exercise</button>
               </div>
+              <div id="exercise-picker" class="exercise-picker hidden">
+                <div class="inline-form">
+                  <select id="exercise-muscle" class="grow">
+                    <option value="">All muscles</option>
+                    <option value="chest">Chest</option>
+                    <option value="back">Back</option>
+                    <option value="shoulders">Shoulders</option>
+                    <option value="biceps">Biceps</option>
+                    <option value="triceps">Triceps</option>
+                    <option value="quads">Quads</option>
+                    <option value="hamstrings">Hamstrings</option>
+                    <option value="glutes">Glutes</option>
+                    <option value="calves">Calves</option>
+                    <option value="core">Core</option>
+                    <option value="full body">Full Body</option>
+                    <option value="bodyweight">Bodyweight</option>
+                  </select>
+                  <input id="exercise-search" type="text" placeholder="Search exercise" class="grow" />
+                  <button id="btn-load-exercises" type="button" class="btn-secondary">Search</button>
+                </div>
+                <div class="inline-form" style="margin-top:0.5rem;">
+                  <select id="exercise-select" class="grow">
+                    <option value="">Choose exercise...</option>
+                  </select>
+                  <button id="btn-add-selected-exercise" type="button" class="btn-primary">Add selected</button>
+                </div>
+                <div id="exercise-results" class="exercise-results"></div>
+              </div>
+              <div id="selected-exercises" class="selected-exercises"></div>
             </div>
 
             <div class="grid-stats">
@@ -275,7 +304,7 @@
             </div>
 
             <div class="card">
-              <h3>Recent sessions</h3>
+              <h3>Workouts</h3>
               <ul id="sessions-list" class="sessions-list"></ul>
             </div>
           </div>

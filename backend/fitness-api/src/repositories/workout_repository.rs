@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    AddSetRequest, ExerciseSummary, Set, SetSummary, Workout, WorkoutDetail,
+    AddSetRequest, Exercise, ExerciseSummary, Set, SetSummary, Workout, WorkoutDetail,
     WorkoutDetailExercise, WorkoutExercise,
 };
 
@@ -82,6 +82,14 @@ pub trait WorkoutRepository: Send + Sync {
         trainee_id: Uuid,
         limit: i64,
     ) -> AppResult<Vec<crate::models::WorkoutSessionSummary>>;
+
+    async fn list_exercises(
+        &self,
+        user_id: Uuid,
+        muscle: Option<&str>,
+        search: Option<&str>,
+        limit: i64,
+    ) -> AppResult<Vec<Exercise>>;
 }
 
 pub struct PgWorkoutRepository {
@@ -566,6 +574,34 @@ impl WorkoutRepository for PgWorkoutRepository {
         )
         .bind(coach_id)
         .bind(trainee_id)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    async fn list_exercises(
+        &self,
+        user_id: Uuid,
+        muscle: Option<&str>,
+        search: Option<&str>,
+        limit: i64,
+    ) -> AppResult<Vec<Exercise>> {
+        let rows = sqlx::query_as::<_, Exercise>(
+            r#"
+            SELECT id, user_id, name, muscle, created_at
+            FROM exercises
+            WHERE user_id = $1
+              AND ($2::text IS NULL OR muscle = $2)
+              AND ($3::text IS NULL OR name ILIKE '%' || $3 || '%')
+            ORDER BY muscle ASC, name ASC
+            LIMIT $4
+            "#,
+        )
+        .bind(user_id)
+        .bind(muscle)
+        .bind(search)
         .bind(limit)
         .fetch_all(&self.pool)
         .await?;

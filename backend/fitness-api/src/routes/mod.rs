@@ -10,6 +10,7 @@ pub fn api_routes() -> Router<AppState> {
         .route("/api/auth/register", post(handlers::register))
         .route("/api/auth/login", post(handlers::login))
         .route("/api/auth/me", get(handlers::me))
+        .route("/api/exercises", get(handlers::list_exercises))
         .route("/trainees", get(handlers::list_trainees).post(handlers::create_trainee))
         .route(
             "/trainees/{trainee_id}",
@@ -17,6 +18,11 @@ pub fn api_routes() -> Router<AppState> {
                 .put(handlers::replace_trainee_profile)
                 .delete(handlers::delete_trainee),
         )
+        .route(
+            "/trainees/{trainee_id}/workouts",
+            get(handlers::list_trainee_workouts).post(handlers::create_workout_for_trainee),
+        )
+        .route("/workouts/{workout_id}", get(handlers::workout_detail))
         .route("/api/trainees", get(handlers::list_trainees).post(handlers::create_trainee))
         .route(
             "/api/trainees/{trainee_id}",
@@ -29,9 +35,14 @@ pub fn api_routes() -> Router<AppState> {
             post(handlers::log_trainee_metric),
         )
         .route(
+            "/api/trainees/{trainee_id}/workouts",
+            get(handlers::list_trainee_workouts).post(handlers::create_workout_for_trainee),
+        )
+        .route(
             "/api/workouts",
             get(handlers::list_workouts).post(handlers::create_workout),
         )
+        .route("/api/workouts/{workout_id}", get(handlers::workout_detail))
         .route(
             "/api/workouts/{workout_id}/exercises",
             post(handlers::add_workout_exercise),
