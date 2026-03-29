@@ -45,7 +45,7 @@ pub fn api_routes() -> Router<AppState> {
         .route("/api/workouts/{workout_id}", get(handlers::workout_detail))
         .route(
             "/api/workouts/{workout_id}/exercises",
-            post(handlers::add_workout_exercise),
+            get(handlers::list_workout_exercises).post(handlers::add_workout_exercise),
         )
         .route(
             "/api/workout-exercises/{workout_exercise_id}/sets",

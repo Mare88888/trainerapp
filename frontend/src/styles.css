@@ -905,6 +905,85 @@ th {
   border-bottom: none;
 }
 
+.session-open-btn {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.session-open-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.workout-detail-panel .panel-head {
+  margin-bottom: 0.35rem;
+}
+
+.workout-detail-panel .panel-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.wd-section-title {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.wd-exercise-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wd-exercise-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 0.9rem;
+}
+
+.wd-exercise-list li:last-child {
+  border-bottom: none;
+}
+
+.wd-ex-name {
+  font-weight: 600;
+}
+
+.wd-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.wd-add-row .grow {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
 .empty-table {
   color: var(--muted);
   font-size: 0.88rem;

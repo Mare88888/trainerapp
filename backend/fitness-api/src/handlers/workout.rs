@@ -10,6 +10,7 @@ use crate::error::AppResult;
 use crate::models::{
     AddExerciseToWorkoutRequest, AddExerciseToWorkoutResponse, AddSetRequest,
     CreateTraineeWorkoutRequest, CreateWorkoutRequest, Set, Workout, WorkoutDetail,
+    WorkoutDetailExercise,
 };
 use crate::repositories::{ExercisePrRow, ExerciseVolumeRow};
 use crate::AppState;
@@ -34,6 +35,18 @@ pub async fn add_workout_exercise(
         .add_exercise_to_workout(auth.id, workout_id, req)
         .await?;
     Ok(Json(res))
+}
+
+pub async fn list_workout_exercises(
+    auth: CoachUser,
+    State(state): State<AppState>,
+    Path(workout_id): Path<Uuid>,
+) -> AppResult<Json<Vec<WorkoutDetailExercise>>> {
+    let detail = state
+        .workout_service
+        .get_workout_by_id(auth.id, workout_id)
+        .await?;
+    Ok(Json(detail.exercises))
 }
 
 pub async fn add_set(

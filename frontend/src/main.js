@@ -36,6 +36,8 @@ const $ = (sel) => document.querySelector(sel);
 
 let selectedTraineeId = null;
 let activeWorkoutId = null;
+/** Workout opened from the sessions list (detail panel). */
+let viewingWorkoutId = null;
 const selectedWorkoutExercises = [];
 let exerciseLibraryRows = [];
 
@@ -193,11 +195,21 @@ async function loadTraineeWorkouts(traineeId, fallbackSessions = []) {
   if (!sess) return;
   const res = await api(`/api/trainees/${traineeId}/workouts`, { authRequired: true });
   if (!res.ok) {
-    renderWorkoutList(fallbackSessions);
+    renderWorkoutList(
+      fallbackSessions.map((s) => ({
+        id: s.id,
+        title: s.title,
+        started_at: s.started_at,
+      })),
+    );
     return;
   }
   const workouts = await res.json();
-  const normalized = workouts.map((w) => ({ title: w.title, started_at: w.started_at }));
+  const normalized = workouts.map((w) => ({
+    id: w.id,
+    title: w.title,
+    started_at: w.started_at,
+  }));
   renderWorkoutList(normalized);
 }
 
@@ -207,7 +219,16 @@ function renderWorkoutList(items) {
   if (items.length) {
     for (const s of items) {
       const li = document.createElement("li");
-      li.innerHTML = `<span>${escapeHtml(s.title)}</span><span class="muted">${fmtDate(s.started_at)}</span>`;
+      if (s.id) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "session-open-btn";
+        btn.innerHTML = `<span>${escapeHtml(s.title)}</span><span class="muted">${fmtDate(s.started_at)}</span>`;
+        btn.addEventListener("click", () => openWorkoutDetail(s.id, s.title, s.started_at));
+        li.appendChild(btn);
+      } else {
+        li.innerHTML = `<span>${escapeHtml(s.title)}</span><span class="muted">${fmtDate(s.started_at)}</span>`;
+      }
       sess.appendChild(li);
     }
   } else {
@@ -215,14 +236,54 @@ function renderWorkoutList(items) {
   }
 }
 
+async function refreshWorkoutExercisesList() {
+  const ul = $("#wd-exercises");
+  if (!ul || !viewingWorkoutId) return;
+  const res = await api(`/api/workouts/${viewingWorkoutId}/exercises`, { authRequired: true });
+  if (!res.ok) {
+    ul.innerHTML = '<li class="muted">Could not load exercises.</li>';
+    return;
+  }
+  const list = await res.json();
+  if (!list.length) {
+    ul.innerHTML = '<li class="muted">No exercises in this workout yet.</li>';
+    return;
+  }
+  ul.innerHTML = list
+    .map(
+      (ex) =>
+        `<li><span class="wd-ex-name">${escapeHtml(ex.exercise?.name || "Exercise")}</span><span class="muted">${(ex.sets || []).length} sets</span></li>`,
+    )
+    .join("");
+}
+
+async function openWorkoutDetail(workoutId, title, startedAt) {
+  viewingWorkoutId = workoutId;
+  activeWorkoutId = workoutId;
+  const titleInput = $("#wo-title");
+  if (titleInput) titleInput.value = title || "";
+  $("#wd-title").textContent = title || "Workout";
+  $("#wd-meta").textContent = startedAt ? fmtDate(startedAt) : "";
+  $("#workout-detail-panel")?.classList.remove("hidden");
+  await refreshWorkoutExercisesList();
+  await syncSelectedExercisesFromWorkout();
+}
+
+function closeWorkoutDetail() {
+  viewingWorkoutId = null;
+  $("#workout-detail-panel")?.classList.add("hidden");
+}
+
 async function selectTrainee(id) {
   const changedTrainee = selectedTraineeId !== id;
   selectedTraineeId = id;
   if (changedTrainee) {
     activeWorkoutId = null;
+    viewingWorkoutId = null;
     selectedWorkoutExercises.length = 0;
     renderSelectedExercises();
     $("#exercise-picker")?.classList.add("hidden");
+    closeWorkoutDetail();
   }
   await refreshTrainees();
   $("#detail-empty").classList.add("hidden");
@@ -399,6 +460,9 @@ async function syncSelectedExercisesFromWorkout() {
     });
   }
   renderSelectedExercises();
+  if (viewingWorkoutId && activeWorkoutId === viewingWorkoutId) {
+    await refreshWorkoutExercisesList();
+  }
 }
 
 async function ensureWorkoutSession() {
@@ -487,6 +551,7 @@ async function addExerciseByName(name) {
   if (!add.ok) return;
   await syncSelectedExercisesFromWorkout();
   await loadTraineeWorkouts(selectedTraineeId);
+  if (viewingWorkoutId === workoutId) await refreshWorkoutExercisesList();
 }
 
 $("#goto-login").addEventListener("click", () => {
@@ -698,6 +763,25 @@ $("#exercise-muscle").addEventListener("change", async () => {
 $("#btn-add-selected-exercise").addEventListener("click", async () => {
   const selectedName = $("#exercise-select")?.value || "";
   await addExerciseByName(selectedName);
+});
+
+$("#wd-close").addEventListener("click", () => closeWorkoutDetail());
+
+$("#form-wd-add-exercise").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = $("#wd-ex-name")?.value?.trim() || "";
+  if (!name || !viewingWorkoutId) return;
+  const res = await api(`/api/workouts/${viewingWorkoutId}/exercises`, {
+    method: "POST",
+    authRequired: true,
+    body: JSON.stringify({ name, notes: null }),
+  });
+  if (!res.ok) return;
+  $("#wd-ex-name").value = "";
+  activeWorkoutId = viewingWorkoutId;
+  await refreshWorkoutExercisesList();
+  await syncSelectedExercisesFromWorkout();
+  await loadTraineeWorkouts(selectedTraineeId);
 });
 
 bootstrapSession();

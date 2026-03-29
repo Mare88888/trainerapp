@@ -317,6 +317,26 @@
               <h3>Workouts</h3>
               <ul id="sessions-list" class="sessions-list"></ul>
             </div>
+
+            <div id="workout-detail-panel" class="card workout-detail-panel hidden">
+              <div class="panel-head">
+                <h3 id="wd-title">Workout</h3>
+                <button id="wd-close" type="button" class="btn-secondary sm">Close</button>
+              </div>
+              <p id="wd-meta" class="muted small"></p>
+              <h4 class="wd-section-title">Exercises</h4>
+              <ul id="wd-exercises" class="wd-exercise-list"></ul>
+              <form id="form-wd-add-exercise" class="wd-add-row">
+                <input
+                  id="wd-ex-name"
+                  type="text"
+                  class="hevy-input grow"
+                  placeholder="Exercise name"
+                  autocomplete="off"
+                />
+                <button type="submit" class="btn-primary">Add exercise</button>
+              </form>
+            </div>
           </div>
         </section>
       </main>
