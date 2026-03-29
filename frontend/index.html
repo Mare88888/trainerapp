@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap"
       rel="stylesheet"
     />
   </head>
@@ -142,7 +142,7 @@
       </header>
 
       <main class="shell">
-        <section class="panel trainees-panel">
+        <section class="panel trainees-panel card">
           <div class="panel-head">
             <h2>My Trainees</h2>
             <button id="toggle-add-trainee" type="button" class="btn-primary sm">+ Add</button>
@@ -248,17 +248,27 @@
               </div>
             </div>
 
-            <div class="card">
-              <h3>Add Workout</h3>
-              <p class="muted small">Assign a workout to this trainee.</p>
-              <div class="inline-form">
-                <input id="wo-title" type="text" placeholder="Session title" class="grow" />
-                <button id="btn-create-workout" type="button" class="btn-primary">Create Session</button>
-                <button id="btn-open-exercise-picker" type="button" class="btn-secondary">Add Exercise</button>
+            <div class="card workout-logger-card">
+              <div class="workout-logger-head">
+                <div class="workout-logger-titles">
+                  <span class="workout-logger-kicker">Workout</span>
+                  <input
+                    id="wo-title"
+                    type="text"
+                    class="workout-title-input"
+                    placeholder="Workout name"
+                    autocomplete="off"
+                  />
+                </div>
+                <div class="workout-logger-actions">
+                  <button id="btn-create-workout" type="button" class="btn-hevy-primary sm">Start</button>
+                  <button id="btn-open-exercise-picker" type="button" class="btn-hevy-ghost sm">+ Exercise</button>
+                </div>
               </div>
+              <p class="muted small workout-logger-hint">Start the session, add exercises, enter kg and reps, then tap <strong>Add Set</strong>.</p>
               <div id="exercise-picker" class="exercise-picker hidden">
-                <div class="inline-form">
-                  <select id="exercise-muscle" class="grow">
+                <div class="picker-toolbar">
+                  <select id="exercise-muscle" class="hevy-input grow">
                     <option value="">All muscles</option>
                     <option value="chest">Chest</option>
                     <option value="back">Back</option>
@@ -273,18 +283,18 @@
                     <option value="full body">Full Body</option>
                     <option value="bodyweight">Bodyweight</option>
                   </select>
-                  <input id="exercise-search" type="text" placeholder="Search exercise" class="grow" />
-                  <button id="btn-load-exercises" type="button" class="btn-secondary">Search</button>
+                  <input id="exercise-search" type="text" placeholder="Search" class="hevy-input grow" />
+                  <button id="btn-load-exercises" type="button" class="btn-hevy-secondary sm">Go</button>
                 </div>
-                <div class="inline-form" style="margin-top:0.5rem;">
-                  <select id="exercise-select" class="grow">
-                    <option value="">Choose exercise...</option>
+                <div class="picker-toolbar">
+                  <select id="exercise-select" class="hevy-input grow">
+                    <option value="">Choose exercise…</option>
                   </select>
-                  <button id="btn-add-selected-exercise" type="button" class="btn-primary">Add selected</button>
+                  <button id="btn-add-selected-exercise" type="button" class="btn-hevy-primary sm">Add</button>
                 </div>
                 <div id="exercise-results" class="exercise-results"></div>
               </div>
-              <div id="selected-exercises" class="selected-exercises"></div>
+              <div id="selected-exercises" class="selected-exercises hevy-exercise-stack"></div>
             </div>
 
             <div class="grid-stats">

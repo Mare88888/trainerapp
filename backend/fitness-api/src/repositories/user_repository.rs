@@ -53,7 +53,22 @@ impl UserRepository for PgUserRepository {
         .fetch_one(&self.pool)
         .await;
         match row {
-            Ok(u) => Ok(u),
+            Ok(u) => {
+                // Seed default exercise library for each newly-created coach account.
+                sqlx::query(
+                    r#"
+                    INSERT INTO exercises (user_id, name, muscle)
+                    SELECT $1, name, muscle
+                    FROM exercise_catalog
+                    ON CONFLICT (user_id, name)
+                    DO UPDATE SET muscle = EXCLUDED.muscle
+                    "#,
+                )
+                .bind(u.id)
+                .execute(&self.pool)
+                .await?;
+                Ok(u)
+            }
             Err(sqlx::Error::Database(ref e))
                 if e.code() == Some(Cow::Borrowed("23505")) =>
             {

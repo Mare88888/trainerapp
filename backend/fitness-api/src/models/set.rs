@@ -17,7 +17,7 @@ pub struct Set {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct AddSetRequest {
-    #[validate(range(min = 1))]
+    #[validate(range(min = 0))]
     pub reps: i32,
     #[validate(range(min = 0.0))]
     pub weight_kg: f64,

@@ -216,11 +216,14 @@ function renderWorkoutList(items) {
 }
 
 async function selectTrainee(id) {
+  const changedTrainee = selectedTraineeId !== id;
   selectedTraineeId = id;
-  activeWorkoutId = null;
-  selectedWorkoutExercises.length = 0;
-  renderSelectedExercises();
-  $("#exercise-picker")?.classList.add("hidden");
+  if (changedTrainee) {
+    activeWorkoutId = null;
+    selectedWorkoutExercises.length = 0;
+    renderSelectedExercises();
+    $("#exercise-picker")?.classList.add("hidden");
+  }
   await refreshTrainees();
   $("#detail-empty").classList.add("hidden");
   $("#detail-content").classList.remove("hidden");
@@ -296,41 +299,106 @@ function renderSelectedExercises() {
   const host = $("#selected-exercises");
   if (!host) return;
   if (!selectedWorkoutExercises.length) {
-    host.innerHTML = '<p class="empty-table">No exercises added yet.</p>';
+    host.innerHTML =
+      '<p class="empty-table" style="padding:1rem 1.1rem;">No exercises yet. Tap <strong>+ Exercise</strong>.</p>';
     return;
   }
   host.innerHTML = selectedWorkoutExercises
-    .map(
-      (e) => `
-      <div class="selected-item" data-we-id="${e.workoutExerciseId}">
-        <strong>${escapeHtml(e.name)}</strong>
-        <div class="set-row">
-          <input type="number" min="1" step="1" placeholder="Reps" data-reps="${e.workoutExerciseId}" />
-          <input type="number" min="0" step="0.5" placeholder="Weight (kg)" data-weight="${e.workoutExerciseId}" />
-          <button type="button" class="btn-secondary" data-add-set="${e.workoutExerciseId}">Add Set</button>
+    .map((e) => {
+      const sets = Array.isArray(e.sets) ? e.sets : [];
+      const doneRows = sets
+        .map((s, idx) => {
+          const prev =
+            idx === 0
+              ? "—"
+              : `${sets[idx - 1].weight_kg} × ${sets[idx - 1].reps}`;
+          return `<tr class="done-row">
+            <td>${s.set_number}</td>
+            <td>${escapeHtml(String(prev))}</td>
+            <td>${s.weight_kg}</td>
+            <td>${s.reps}</td>
+            <td class="hevy-set-check"><span class="hevy-done-mark" title="Logged">✓</span></td>
+          </tr>`;
+        })
+        .join("");
+      const last = sets[sets.length - 1];
+      const nextNum = last ? last.set_number + 1 : 1;
+      const prevForNew = last ? `${last.weight_kg} × ${last.reps}` : "—";
+      const wid = e.workoutExerciseId;
+      return `<article class="hevy-exercise-card" data-we-id="${wid}">
+        <div class="hevy-exercise-head">
+          <h4 class="hevy-exercise-name">${escapeHtml(e.name)}</h4>
         </div>
-      </div>`,
-    )
+        <div class="hevy-set-table-wrap">
+          <table class="hevy-set-table">
+            <thead>
+              <tr>
+                <th>Set</th>
+                <th>Previous</th>
+                <th>kg</th>
+                <th>Reps</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${doneRows}
+              <tr class="hevy-add-set-row">
+                <td>${nextNum}</td>
+                <td>${escapeHtml(prevForNew)}</td>
+                <td><input type="number" min="0" step="0.5" class="hevy-cell-input" placeholder="0" data-weight="${wid}" /></td>
+                <td><input type="number" min="0" step="1" class="hevy-cell-input" placeholder="0" data-reps="${wid}" /></td>
+                <td class="hevy-set-check hevy-set-check--empty" aria-hidden="true"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <button type="button" class="hevy-add-set-btn" data-add-set="${wid}">
+          <span class="hevy-add-set-icon" aria-hidden="true">+</span>
+          Add Set
+        </button>
+      </article>`;
+    })
     .join("");
 
   host.querySelectorAll("[data-add-set]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-add-set");
-      const reps = Number(host.querySelector(`[data-reps="${id}"]`)?.value || "");
-      const weight = Number(host.querySelector(`[data-weight="${id}"]`)?.value || "");
-      if (!Number.isFinite(reps) || reps <= 0) return;
-      if (!Number.isFinite(weight) || weight < 0) return;
+      const card = host.querySelector(`.hevy-exercise-card[data-we-id="${id}"]`);
+      const repsRaw = card?.querySelector(`[data-reps="${id}"]`)?.value?.trim() ?? "";
+      const weightRaw = card?.querySelector(`[data-weight="${id}"]`)?.value?.trim() ?? "";
+      let reps = Number(repsRaw);
+      let weight = Number(weightRaw);
+      // API requires reps >= 0 and weight >= 0; empty fields default to 0.
+      if (!Number.isFinite(reps) || reps < 0) reps = 0;
+      if (!Number.isFinite(weight) || weight < 0) weight = 0;
       const res = await api(`/api/workout-exercises/${id}/sets`, {
         method: "POST",
         authRequired: true,
         body: JSON.stringify({ reps, weight_kg: weight, is_warmup: false }),
       });
       if (res.ok) {
-        host.querySelector(`[data-reps="${id}"]`).value = "";
-        host.querySelector(`[data-weight="${id}"]`).value = "";
+        await syncSelectedExercisesFromWorkout();
+      } else {
+        setAuthMessage("Could not add set.", false);
       }
     });
   });
+}
+
+async function syncSelectedExercisesFromWorkout() {
+  if (!activeWorkoutId) return;
+  const res = await api(`/api/workouts/${activeWorkoutId}`, { authRequired: true });
+  if (!res.ok) return;
+  const detail = await res.json();
+  selectedWorkoutExercises.length = 0;
+  for (const ex of detail.exercises || []) {
+    selectedWorkoutExercises.push({
+      workoutExerciseId: ex.workout_exercise_id,
+      name: ex.exercise?.name || "Exercise",
+      sets: Array.isArray(ex.sets) ? ex.sets : [],
+    });
+  }
+  renderSelectedExercises();
 }
 
 async function ensureWorkoutSession() {
@@ -345,7 +413,7 @@ async function ensureWorkoutSession() {
   if (!res.ok) return null;
   const workout = await res.json();
   activeWorkoutId = workout.id;
-  await selectTrainee(selectedTraineeId);
+  await loadTraineeWorkouts(selectedTraineeId);
   return activeWorkoutId;
 }
 
@@ -378,7 +446,7 @@ async function loadExerciseLibrary() {
             <strong>${escapeHtml(r.name)}</strong><br />
             <span class="muted">${escapeHtml(r.muscle || "general")}</span>
           </div>
-          <button type="button" class="btn-secondary" data-add-ex="${encodeURIComponent(r.name)}">Add</button>
+          <button type="button" class="btn-hevy-secondary sm" data-add-ex="${encodeURIComponent(r.name)}">Add</button>
         </div>`,
         )
         .join("")
@@ -402,6 +470,9 @@ function populateExerciseSelect(rows) {
     opt.textContent = `${row.name} (${row.muscle || "general"})`;
     select.appendChild(opt);
   }
+  if (rows.length > 0) {
+    select.value = rows[0].name;
+  }
 }
 
 async function addExerciseByName(name) {
@@ -414,12 +485,7 @@ async function addExerciseByName(name) {
     body: JSON.stringify({ name, notes: null }),
   });
   if (!add.ok) return;
-  const body = await add.json();
-  selectedWorkoutExercises.push({
-    workoutExerciseId: body.workout_exercise.id,
-    name,
-  });
-  renderSelectedExercises();
+  await syncSelectedExercisesFromWorkout();
   await loadTraineeWorkouts(selectedTraineeId);
 }
 
@@ -624,6 +690,8 @@ $("#btn-load-exercises").addEventListener("click", async () => {
 
 $("#exercise-muscle").addEventListener("change", async () => {
   // Choosing a muscle group immediately narrows to that group.
+  const search = $("#exercise-search");
+  if (search) search.value = "";
   await loadExerciseLibrary();
 });
 
