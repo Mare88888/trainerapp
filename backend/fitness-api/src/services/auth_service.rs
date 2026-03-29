@@ -20,10 +20,17 @@ impl AuthService {
 
     pub async fn register(&self, req: RegisterRequest) -> AppResult<AuthResponse> {
         req.validate().map_err(AppError::Validation)?;
+        let first = req.first_name.trim();
+        let last = req.last_name.trim();
+        if first.is_empty() || last.is_empty() {
+            return Err(AppError::BadRequest(
+                "first and last name are required".into(),
+            ));
+        }
         let hash = hash_password(&req.password)?;
         let user = self
             .users
-            .create_user(&req.email, &hash)
+            .create_user(&req.email, &hash, first, last)
             .await?;
         let token = sign_token(
             user.id,

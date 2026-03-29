@@ -21,19 +21,105 @@
           <p class="tagline">Hevy-style training logs for coaches and their athletes.</p>
         </div>
         <div class="card auth-card">
-          <h2>Sign in</h2>
-          <label class="field">
-            <span>Email</span>
-            <input id="email" type="email" autocomplete="username" placeholder="you@studio.com" />
-          </label>
-          <label class="field">
-            <span>Password</span>
-            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
-          </label>
-          <div class="auth-actions">
-            <button id="login" type="button" class="btn-primary">Log in</button>
-            <button id="register" type="button" class="btn-ghost">Create coach account</button>
+          <div id="panel-signup" class="auth-panel">
+            <h2>Sign up</h2>
+            <p class="auth-lead">Create your coach account to manage trainees and sessions.</p>
+            <form id="form-signup" novalidate>
+              <div class="form-grid auth-name-row">
+                <label class="field">
+                  <span>First name</span>
+                  <input
+                    id="signup-first-name"
+                    name="first_name"
+                    type="text"
+                    autocomplete="given-name"
+                    placeholder="Alex"
+                    maxlength="100"
+                    required
+                  />
+                </label>
+                <label class="field">
+                  <span>Last name</span>
+                  <input
+                    id="signup-last-name"
+                    name="last_name"
+                    type="text"
+                    autocomplete="family-name"
+                    placeholder="Rivera"
+                    maxlength="100"
+                    required
+                  />
+                </label>
+              </div>
+              <label class="field">
+                <span>Email</span>
+                <input
+                  id="signup-email"
+                  name="email"
+                  type="email"
+                  autocomplete="email"
+                  placeholder="you@studio.com"
+                  required
+                />
+              </label>
+              <label class="field">
+                <span>Password</span>
+                <input
+                  id="signup-password"
+                  name="password"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="At least 8 characters"
+                  minlength="8"
+                  required
+                />
+              </label>
+              <div class="auth-actions">
+                <button type="submit" class="btn-primary wide">Create coach account</button>
+              </div>
+            </form>
+            <p class="auth-switch">
+              Already have an account?
+              <button type="button" class="link-btn" id="goto-login">Log in</button>
+            </p>
           </div>
+
+          <div id="panel-login" class="auth-panel hidden">
+            <h2>Log in</h2>
+            <p class="auth-lead">Welcome back — enter your coach credentials.</p>
+            <form id="form-login" novalidate>
+              <label class="field">
+                <span>Email</span>
+                <input
+                  id="login-email"
+                  name="email"
+                  type="email"
+                  autocomplete="username"
+                  placeholder="you@studio.com"
+                  required
+                />
+              </label>
+              <label class="field">
+                <span>Password</span>
+                <input
+                  id="login-password"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  placeholder="••••••••"
+                  required
+                />
+              </label>
+              <div class="auth-actions">
+                <button type="submit" class="btn-primary wide">Log in</button>
+              </div>
+            </form>
+            <p class="auth-switch">
+              Don’t have an account?
+              <button type="button" class="link-btn" id="goto-signup">Sign up</button>
+            </p>
+          </div>
+
           <p id="auth-message" class="message" role="status"></p>
         </div>
       </div>
@@ -47,7 +133,10 @@
             <span class="brand-name">CoachLift</span>
           </div>
           <div class="topbar-user">
-            <span id="coach-email" class="coach-email"></span>
+            <div class="coach-identity">
+              <span id="coach-display-name" class="coach-display-name"></span>
+              <span id="coach-email" class="coach-email"></span>
+            </div>
             <button id="logout" type="button" class="btn-secondary sm">Log out</button>
           </div>
         </div>

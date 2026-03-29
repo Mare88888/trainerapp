@@ -47,6 +47,8 @@ async fn post_workouts_creates_for_authenticated_user(pool: sqlx::PgPool) {
     let app = create_app(pool, test_config());
 
     let reg_body = serde_json::to_vec(&json!({
+        "first_name": "Lift",
+        "last_name": "McTrain",
         "email": "lifters@test.example",
         "password": "hunter2222"
     }))

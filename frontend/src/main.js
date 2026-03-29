@@ -24,12 +24,45 @@ function setAuthMessage(text, ok = false) {
   if (!text) el.classList.remove("ok");
 }
 
+function showSignupPanel() {
+  $("#panel-signup").classList.remove("hidden");
+  $("#panel-login").classList.add("hidden");
+  $("#form-login")?.reset();
+  setAuthMessage("");
+}
+
+function showLoginPanel() {
+  $("#panel-signup").classList.add("hidden");
+  $("#panel-login").classList.remove("hidden");
+  $("#form-signup")?.reset();
+  setAuthMessage("");
+}
+
+function formatAuthError(res, body) {
+  if (body?.error === "validation failed" && body.details && typeof body.details === "object") {
+    const msgs = [];
+    for (const key of Object.keys(body.details)) {
+      const arr = body.details[key];
+      if (Array.isArray(arr)) {
+        for (const item of arr) {
+          if (typeof item === "string") msgs.push(item);
+          else if (item && typeof item.message === "string") msgs.push(item.message);
+        }
+      }
+    }
+    if (msgs.length) return msgs.join(" ");
+  }
+  if (typeof body?.error === "string" && body.error) return body.error;
+  return `Something went wrong (${res.status}).`;
+}
+
 function showLogin() {
   $("#view-login").classList.remove("hidden");
   $("#view-app").classList.add("hidden");
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   selectedTraineeId = null;
+  showSignupPanel();
 }
 
 function showApp() {
@@ -37,17 +70,29 @@ function showApp() {
   $("#view-app").classList.remove("hidden");
 }
 
-function loadUserFromStorage() {
-  try {
-    return JSON.parse(localStorage.getItem(USER_KEY) || "null");
-  } catch {
-    return null;
-  }
-}
-
 function saveSession(token, user) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+function setCoachHeader(user) {
+  const first = (user?.first_name || "").trim();
+  const last = (user?.last_name || "").trim();
+  const full = [first, last].filter(Boolean).join(" ").trim();
+  const nameEl = $("#coach-display-name");
+  const emailEl = $("#coach-email");
+  if (!nameEl || !emailEl) return;
+  const email = (user?.email || "").trim();
+  if (full) {
+    nameEl.textContent = full;
+    emailEl.textContent = email;
+  } else if (email) {
+    nameEl.textContent = email;
+    emailEl.textContent = "";
+  } else {
+    nameEl.textContent = "";
+    emailEl.textContent = "";
+  }
 }
 
 async function bootstrapSession() {
@@ -63,7 +108,7 @@ async function bootstrapSession() {
   }
   const user = await res.json();
   saveSession(token, user);
-  $("#coach-email").textContent = user.email || "";
+  setCoachHeader(user);
   showApp();
   await refreshTrainees();
 }
@@ -185,48 +230,88 @@ async function selectTrainee(id) {
   }
 }
 
-$("#register").addEventListener("click", async () => {
+$("#goto-login").addEventListener("click", () => {
+  showLoginPanel();
+});
+
+$("#goto-signup").addEventListener("click", () => {
+  showSignupPanel();
+});
+
+$("#form-signup").addEventListener("submit", async (e) => {
+  e.preventDefault();
   setAuthMessage("");
+  const firstName = $("#signup-first-name").value.trim();
+  const lastName = $("#signup-last-name").value.trim();
+  const email = $("#signup-email").value.trim();
+  const password = $("#signup-password").value;
+
+  if (!firstName || !lastName) {
+    setAuthMessage("Please enter your first and last name.");
+    return;
+  }
+  if (!email) {
+    setAuthMessage("Please enter your email.");
+    return;
+  }
+  if (password.length < 8) {
+    setAuthMessage("Password must be at least 8 characters.");
+    return;
+  }
+
   const res = await api("/api/auth/register", {
     method: "POST",
     body: JSON.stringify({
-      email: $("#email").value.trim(),
-      password: $("#password").value,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      password,
     }),
   });
   const body = await res.json().catch(() => ({}));
   if (res.ok && body.token) {
     saveSession(body.token, body.user);
     setAuthMessage("Account created — you’re in.", true);
-    $("#coach-email").textContent = body.user?.email || "";
+    setCoachHeader(body.user);
     showApp();
     await refreshTrainees();
   } else {
-    setAuthMessage(body.error || `Could not register (${res.status})`);
+    setAuthMessage(formatAuthError(res, body));
   }
 });
 
-$("#login").addEventListener("click", async () => {
+$("#form-login").addEventListener("submit", async (e) => {
+  e.preventDefault();
   setAuthMessage("");
+  const email = $("#login-email").value.trim();
+  const password = $("#login-password").value;
+
+  if (!email) {
+    setAuthMessage("Please enter your email.");
+    return;
+  }
+  if (!password) {
+    setAuthMessage("Please enter your password.");
+    return;
+  }
+
   const res = await api("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify({
-      email: $("#email").value.trim(),
-      password: $("#password").value,
-    }),
+    body: JSON.stringify({ email, password }),
   });
   const body = await res.json().catch(() => ({}));
   if (res.ok && body.token) {
     saveSession(body.token, body.user);
-    $("#coach-email").textContent = body.user?.email || "";
+    setCoachHeader(body.user);
     showApp();
     await refreshTrainees();
   } else {
-    setAuthMessage(body.error || `Login failed (${res.status})`);
+    setAuthMessage(formatAuthError(res, body));
   }
 });
 
 $("#logout").addEventListener("click", () => {
+  setCoachHeader({});
   showLogin();
   $("#detail-empty").classList.remove("hidden");
   $("#detail-content").classList.add("hidden");

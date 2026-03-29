@@ -42,7 +42,7 @@ body {
 
 .auth-shell {
   width: 100%;
-  max-width: 420px;
+  max-width: 500px;
 }
 
 .brand-block {
@@ -92,9 +92,28 @@ body {
   padding: 1.25rem 1.35rem;
 }
 
+.auth-card {
+  padding: 1.4rem 1.5rem;
+}
+
 .auth-card h2 {
-  margin: 0 0 1rem;
+  margin: 0 0 0.35rem;
   font-size: 1.15rem;
+}
+
+.auth-lead {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.auth-panel.hidden {
+  display: none;
+}
+
+.auth-actions .btn-primary.wide {
+  width: 100%;
 }
 
 .field {
@@ -191,6 +210,34 @@ body {
   color: var(--accent);
 }
 
+.auth-switch {
+  margin: 0.65rem 0 0;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.auth-switch:first-of-type {
+  margin-top: 1rem;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.link-btn:hover {
+  filter: brightness(1.12);
+}
+
 .topbar {
   border-bottom: 1px solid var(--border);
   background: rgba(12, 14, 17, 0.85);
@@ -227,13 +274,36 @@ body {
   gap: 0.75rem;
 }
 
-.coach-email {
-  font-size: 0.88rem;
-  color: var(--muted);
-  max-width: 200px;
+.coach-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  max-width: min(240px, 42vw);
+  text-align: right;
+}
+
+.coach-display-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  width: 100%;
+}
+
+.coach-email {
+  font-size: 0.78rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.coach-email:empty {
+  display: none;
 }
 
 .shell {
@@ -318,8 +388,25 @@ body {
   gap: 0.5rem 0.75rem;
 }
 
+/* Wider auth card + minmax so two name columns don’t overflow labels */
+.auth-card .form-grid.auth-name-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem 1rem;
+}
+
+.auth-card .form-grid.auth-name-row .field {
+  min-width: 0;
+  margin-bottom: 0.85rem;
+}
+
+@media (max-width: 380px) {
+  .auth-card .form-grid.auth-name-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 520px) {
-  .form-grid {
+  .form-grid:not(.auth-name-row) {
     grid-template-columns: 1fr;
   }
 }
