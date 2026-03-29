@@ -1,0 +1,7 @@
+fitness app
+
+PostgreSQL:
+host: localhost
+user name: postgres
+password: dfghjkl12345
+port: 5432

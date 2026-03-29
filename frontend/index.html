@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CoachLift — Trainee hub</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="view-login" class="view">
+      <div class="auth-shell">
+        <div class="brand-block">
+          <span class="logo-mark">CL</span>
+          <h1>CoachLift</h1>
+          <p class="tagline">Hevy-style training logs for coaches and their athletes.</p>
+        </div>
+        <div class="card auth-card">
+          <h2>Sign in</h2>
+          <label class="field">
+            <span>Email</span>
+            <input id="email" type="email" autocomplete="username" placeholder="you@studio.com" />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
+          </label>
+          <div class="auth-actions">
+            <button id="login" type="button" class="btn-primary">Log in</button>
+            <button id="register" type="button" class="btn-ghost">Create coach account</button>
+          </div>
+          <p id="auth-message" class="message" role="status"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-app" class="view hidden">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <div class="brand-inline">
+            <span class="logo-mark sm">CL</span>
+            <span class="brand-name">CoachLift</span>
+          </div>
+          <div class="topbar-user">
+            <span id="coach-email" class="coach-email"></span>
+            <button id="logout" type="button" class="btn-secondary sm">Log out</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell">
+        <section class="panel trainees-panel">
+          <div class="panel-head">
+            <h2>Trainees</h2>
+            <button id="toggle-add-trainee" type="button" class="btn-primary sm">+ Add</button>
+          </div>
+
+          <form id="form-add-trainee" class="add-trainee card hidden">
+            <h3>New trainee</h3>
+            <div class="form-grid">
+              <label class="field">
+                <span>Name</span>
+                <input id="nt-name" type="text" placeholder="Alex Rivera" required />
+              </label>
+              <label class="field">
+                <span>Email (optional)</span>
+                <input id="nt-email" type="email" placeholder="alex@email.com" />
+              </label>
+              <label class="field">
+                <span>Height (cm)</span>
+                <input id="nt-height" type="number" step="0.1" placeholder="178" />
+              </label>
+              <label class="field">
+                <span>Weight (kg)</span>
+                <input id="nt-weight" type="number" step="0.1" placeholder="82" />
+              </label>
+            </div>
+            <label class="field">
+              <span>Notes</span>
+              <input id="nt-notes" type="text" placeholder="Goals, injuries, schedule…" />
+            </label>
+            <div class="row-actions">
+              <button type="submit" class="btn-primary">Save trainee</button>
+              <button id="cancel-add-trainee" type="button" class="btn-ghost">Cancel</button>
+            </div>
+          </form>
+
+          <ul id="trainee-list" class="trainee-list"></ul>
+        </section>
+
+        <section class="panel detail-panel">
+          <div id="detail-empty" class="empty-state">
+            <p>Select a trainee to see profile, progress, max lifts, and sessions.</p>
+          </div>
+
+          <div id="detail-content" class="hidden">
+            <div class="detail-header">
+              <div>
+                <h2 id="dt-name"></h2>
+                <p id="dt-meta" class="muted"></p>
+              </div>
+              <button id="toggle-edit-trainee" type="button" class="btn-secondary sm">Edit profile</button>
+            </div>
+
+            <form id="form-edit-trainee" class="card edit-form hidden">
+              <div class="form-grid">
+                <label class="field">
+                  <span>Name</span>
+                  <input id="et-name" type="text" />
+                </label>
+                <label class="field">
+                  <span>Email</span>
+                  <input id="et-email" type="email" />
+                </label>
+                <label class="field">
+                  <span>Height (cm)</span>
+                  <input id="et-height" type="number" step="0.1" />
+                </label>
+                <label class="field">
+                  <span>Weight (kg)</span>
+                  <input id="et-weight" type="number" step="0.1" />
+                </label>
+              </div>
+              <label class="field">
+                <span>Notes</span>
+                <input id="et-notes" type="text" />
+              </label>
+              <div class="row-actions">
+                <button type="submit" class="btn-primary">Save</button>
+                <button id="cancel-edit-trainee" type="button" class="btn-ghost">Cancel</button>
+              </div>
+            </form>
+
+            <div class="card log-weight-card">
+              <h3>Log check-in</h3>
+              <div class="inline-form">
+                <label class="field inline">
+                  <span>Weight (kg)</span>
+                  <input id="log-weight" type="number" step="0.1" placeholder="80.5" />
+                </label>
+                <label class="field inline">
+                  <span>Height (cm)</span>
+                  <input id="log-height" type="number" step="0.1" placeholder="optional" />
+                </label>
+                <button id="btn-log-metric" type="button" class="btn-primary">Log</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Log session</h3>
+              <p class="muted small">Creates a workout attributed to this trainee (add exercises & sets via API or future UI).</p>
+              <div class="inline-form">
+                <input id="wo-title" type="text" placeholder="Session title" class="grow" />
+                <input id="wo-notes" type="text" placeholder="Notes" class="grow" />
+                <button id="btn-create-workout" type="button" class="btn-primary">Start session</button>
+              </div>
+            </div>
+
+            <div class="grid-stats">
+              <div class="card">
+                <h3>Progress (weight)</h3>
+                <div id="metrics-table" class="table-wrap"></div>
+              </div>
+              <div class="card">
+                <h3>Max lifts</h3>
+                <div id="prs-table" class="table-wrap"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Volume by exercise</h3>
+              <div id="volume-table" class="table-wrap"></div>
+            </div>
+
+            <div class="card">
+              <h3>Recent sessions</h3>
+              <ul id="sessions-list" class="sessions-list"></ul>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

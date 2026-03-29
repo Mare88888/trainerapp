@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fitness
+      POSTGRES_PASSWORD: fitness
+      POSTGRES_DB: fitness
+    ports:
+      - "5432:5432"
+    volumes:
+      - fitness_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitness -d fitness"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend/fitness-api
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://fitness:fitness@db:5432/fitness
+      JWT_SECRET: ${JWT_SECRET:-dev-change-this-secret-min-32-chars-long!!}
+      JWT_EXPIRATION_HOURS: "24"
+      HOST: 0.0.0.0
+      PORT: "3000"
+      RUST_LOG: fitness_api=info,tower_http=info,sqlx=warn
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  fitness_pg_data:
