@@ -2,13 +2,21 @@
   "name": "fitness-tracker-web",
   "private": true,
   "version": "0.1.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "next dev -p 5173",
+    "build": "next build",
+    "start": "next start -p 5173",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^15.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "vite": "^6.0.0"
+    "@types/node": "^22.15.2",
+    "@types/react": "^18.3.21",
+    "@types/react-dom": "^18.3.7",
+    "typescript": "^5.8.3"
   }
 }
