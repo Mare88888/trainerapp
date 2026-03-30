@@ -17,6 +17,16 @@ pub struct WorkoutService {
 }
 
 impl WorkoutService {
+    fn normalize_set_type(raw: &str) -> Option<&'static str> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "warmup" | "warm_up" | "warm-up" => Some("warmup"),
+            "normal" => Some("normal"),
+            "failure" => Some("failure"),
+            "drop" | "dropset" | "drop_set" | "drop-set" => Some("drop"),
+            _ => None,
+        }
+    }
+
     pub fn new(
         workouts: Arc<dyn WorkoutRepository>,
         trainees: Arc<dyn TraineeRepository>,
@@ -94,6 +104,24 @@ impl WorkoutService {
             .assert_workout_exercise_owner(workout_exercise_id, user_id)
             .await?;
         self.workouts.add_set(workout_exercise_id, &req).await
+    }
+
+    pub async fn update_set_type(
+        &self,
+        user_id: Uuid,
+        set_id: Uuid,
+        set_type: String,
+    ) -> AppResult<crate::models::Set> {
+        let Some(normalized) = Self::normalize_set_type(&set_type) else {
+            return Err(AppError::BadRequest(
+                "set_type must be one of: warmup, normal, failure, drop".into(),
+            ));
+        };
+        self.workouts.update_set_type(set_id, user_id, normalized).await
+    }
+
+    pub async fn delete_set_by_id(&self, user_id: Uuid, set_id: Uuid) -> AppResult<()> {
+        self.workouts.delete_set(set_id, user_id).await
     }
 
     pub async fn list_workouts(
@@ -281,6 +309,14 @@ mod tests {
             unreachable!()
         }
 
+        async fn update_set_type(&self, _: Uuid, _: Uuid, _: &str) -> AppResult<Set> {
+            unreachable!()
+        }
+
+        async fn delete_set(&self, _: Uuid, _: Uuid) -> AppResult<()> {
+            unreachable!()
+        }
+
         async fn list_workouts_detailed(
             &self,
             _: Uuid,
@@ -380,6 +416,14 @@ mod tests {
         }
 
         async fn add_set(&self, _: Uuid, _: &AddSetRequest) -> AppResult<Set> {
+            unreachable!()
+        }
+
+        async fn update_set_type(&self, _: Uuid, _: Uuid, _: &str) -> AppResult<Set> {
+            unreachable!()
+        }
+
+        async fn delete_set(&self, _: Uuid, _: Uuid) -> AppResult<()> {
             unreachable!()
         }
 

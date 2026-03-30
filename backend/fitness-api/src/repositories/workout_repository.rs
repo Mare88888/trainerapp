@@ -57,6 +57,10 @@ pub trait WorkoutRepository: Send + Sync {
         req: &AddSetRequest,
     ) -> AppResult<Set>;
 
+    async fn update_set_type(&self, set_id: Uuid, user_id: Uuid, set_type: &str) -> AppResult<Set>;
+
+    async fn delete_set(&self, set_id: Uuid, user_id: Uuid) -> AppResult<()>;
+
     async fn list_workouts_detailed(
         &self,
         user_id: Uuid,
@@ -254,9 +258,9 @@ impl WorkoutRepository for PgWorkoutRepository {
 
         let s = sqlx::query_as::<_, Set>(
             r#"
-            INSERT INTO sets (workout_exercise_id, set_number, reps, weight_kg, is_warmup)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, workout_exercise_id, set_number, reps, weight_kg, is_warmup, created_at
+            INSERT INTO sets (workout_exercise_id, set_number, reps, weight_kg, is_warmup, set_type)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, workout_exercise_id, set_number, reps, weight_kg, is_warmup, set_type, created_at
             "#,
         )
         .bind(workout_exercise_id)
@@ -264,10 +268,106 @@ impl WorkoutRepository for PgWorkoutRepository {
         .bind(req.reps)
         .bind(req.weight_kg)
         .bind(req.is_warmup)
+        .bind(if req.is_warmup { "warmup" } else { "normal" })
         .fetch_one(&self.pool)
         .await?;
 
         Ok(s)
+    }
+
+    async fn update_set_type(&self, set_id: Uuid, user_id: Uuid, set_type: &str) -> AppResult<Set> {
+        let s = sqlx::query_as::<_, Set>(
+            r#"
+            UPDATE sets s
+            SET set_type = $3, is_warmup = ($3 = 'warmup')
+            FROM workout_exercises we
+            INNER JOIN workouts w ON w.id = we.workout_id
+            WHERE s.id = $1
+              AND s.workout_exercise_id = we.id
+              AND w.user_id = $2
+            RETURNING s.id, s.workout_exercise_id, s.set_number, s.reps, s.weight_kg, s.is_warmup, s.set_type, s.created_at
+            "#,
+        )
+        .bind(set_id)
+        .bind(user_id)
+        .bind(set_type)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        s.ok_or(AppError::NotFound)
+    }
+
+    async fn delete_set(&self, set_id: Uuid, user_id: Uuid) -> AppResult<()> {
+        let mut tx = self.pool.begin().await?;
+
+        // Lock the parent line so concurrent set deletes cannot leave numbering inconsistent.
+        let we_id: Option<Uuid> = sqlx::query_scalar(
+            r#"
+            SELECT we.id
+            FROM sets s
+            INNER JOIN workout_exercises we ON we.id = s.workout_exercise_id
+            INNER JOIN workouts w ON w.id = we.workout_id
+            WHERE s.id = $1
+              AND w.user_id = $2
+            FOR UPDATE OF we
+            "#,
+        )
+        .bind(set_id)
+        .bind(user_id)
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        let Some(we_id) = we_id else {
+            return Err(AppError::NotFound);
+        };
+
+        let deleted = sqlx::query(
+            r#"
+            DELETE FROM sets s
+            USING workout_exercises we, workouts w
+            WHERE s.id = $1
+              AND s.workout_exercise_id = we.id
+              AND we.workout_id = w.id
+              AND w.user_id = $2
+            "#,
+        )
+        .bind(set_id)
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+
+        if deleted == 0 {
+            return Err(AppError::NotFound);
+        }
+
+        // Re-sequence remaining sets to 1..N after every delete.
+        sqlx::query(
+            r#"UPDATE sets SET set_number = set_number + 1000000 WHERE workout_exercise_id = $1"#,
+        )
+        .bind(we_id)
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query(
+            r#"
+            WITH ranked AS (
+                SELECT id, ROW_NUMBER() OVER (ORDER BY set_number) AS rn
+                FROM sets
+                WHERE workout_exercise_id = $1
+            )
+            UPDATE sets s
+            SET set_number = r.rn
+            FROM ranked r
+            WHERE s.id = r.id
+            "#,
+        )
+        .bind(we_id)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        Ok(())
     }
 
     async fn list_workouts_detailed(
@@ -344,7 +444,7 @@ impl WorkoutRepository for PgWorkoutRepository {
         if !we_ids.is_empty() {
             let set_rows = sqlx::query(
                 r#"
-                SELECT id, workout_exercise_id, set_number, reps, weight_kg, is_warmup
+                SELECT id, workout_exercise_id, set_number, reps, weight_kg, is_warmup, set_type
                 FROM sets
                 WHERE workout_exercise_id = ANY($1)
                 ORDER BY workout_exercise_id, set_number
@@ -362,6 +462,7 @@ impl WorkoutRepository for PgWorkoutRepository {
                     reps: r.try_get("reps")?,
                     weight_kg: r.try_get("weight_kg")?,
                     is_warmup: r.try_get("is_warmup")?,
+                    set_type: r.try_get("set_type")?,
                 };
                 sets_by_we.entry(we_id).or_default().push(summary);
             }

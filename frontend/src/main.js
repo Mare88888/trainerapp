@@ -40,6 +40,7 @@ let activeWorkoutId = null;
 let viewingWorkoutId = null;
 const selectedWorkoutExercises = [];
 let exerciseLibraryRows = [];
+let activeSetSheetTarget = null;
 
 function setAuthMessage(text, ok = false) {
   const el = $("#auth-message");
@@ -181,6 +182,95 @@ function escapeHtml(s) {
   const d = document.createElement("div");
   d.textContent = s;
   return d.innerHTML;
+}
+
+function setNumberLabel(setRow) {
+  const t = String(setRow?.set_type || "").toLowerCase();
+  if (t === "warmup") return "W";
+  if (t === "failure") return "F";
+  if (t === "drop") return "D";
+  return String(setRow?.set_number ?? "");
+}
+
+function bindSetSheetDelegationOnce() {
+  if (document.documentElement.dataset.setSheetGlobalBound === "1") return;
+  document.documentElement.dataset.setSheetGlobalBound = "1";
+  const openFromAny = (e) => {
+    const host = $("#selected-exercises");
+    if (!host) return;
+    const targetEl = clickTargetElement(e);
+    const latestTrigger = targetEl?.closest?.("[data-last-set-sheet]");
+    if (latestTrigger && host.contains(latestTrigger)) {
+      e.preventDefault();
+      e.stopPropagation();
+      const workoutExerciseId = latestTrigger.getAttribute("data-last-set-sheet");
+      if (!workoutExerciseId) return;
+      const ex = selectedWorkoutExercises.find(
+        (x) => String(x.workoutExerciseId) === String(workoutExerciseId),
+      );
+      const sets = Array.isArray(ex?.sets) ? ex.sets : [];
+      const last = sets[sets.length - 1];
+      if (!last?.id) return;
+      openSetTypeSheet(workoutExerciseId, last.id);
+      return;
+    }
+    const trigger = targetEl?.closest?.("[data-set-sheet]");
+    if (!trigger || !host.contains(trigger)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const setId = trigger.getAttribute("data-set-sheet");
+    const workoutExerciseId = trigger.getAttribute("data-we");
+    if (!setId || !workoutExerciseId) return;
+    openSetTypeSheet(workoutExerciseId, setId);
+  };
+  document.addEventListener("pointerdown", openFromAny, true);
+  document.addEventListener("click", openFromAny, true);
+}
+
+// Fallback direct hook used by inline onclick on rendered rows.
+window.openSetSheetByIds = function openSetSheetByIds(workoutExerciseId, setId) {
+  if (!workoutExerciseId || !setId) return;
+  openSetTypeSheet(String(workoutExerciseId), String(setId));
+};
+
+window.openLatestSetSheet = function openLatestSetSheet(workoutExerciseId) {
+  if (!workoutExerciseId) return;
+  const ex = selectedWorkoutExercises.find(
+    (x) => String(x.workoutExerciseId) === String(workoutExerciseId),
+  );
+  const sets = Array.isArray(ex?.sets) ? ex.sets : [];
+  const last = sets[sets.length - 1];
+  if (!last?.id) return;
+  openSetTypeSheet(String(workoutExerciseId), String(last.id));
+};
+
+function handleSavedSetNumberClick(e) {
+  const host = $("#selected-exercises");
+  if (!host) return;
+  const targetEl = clickTargetElement(e);
+  const latestTrigger = targetEl?.closest?.("[data-last-set-sheet]");
+  if (latestTrigger && host.contains(latestTrigger)) {
+    e.preventDefault();
+    e.stopPropagation();
+    const workoutExerciseId = latestTrigger.getAttribute("data-last-set-sheet");
+    if (!workoutExerciseId) return;
+    const ex = selectedWorkoutExercises.find(
+      (x) => String(x.workoutExerciseId) === String(workoutExerciseId),
+    );
+    const sets = Array.isArray(ex?.sets) ? ex.sets : [];
+    const last = sets[sets.length - 1];
+    if (!last?.id) return;
+    openSetTypeSheet(workoutExerciseId, last.id);
+    return;
+  }
+  const trigger = targetEl?.closest?.("[data-set-sheet]");
+  if (!trigger || !host.contains(trigger)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const setId = trigger.getAttribute("data-set-sheet");
+  const workoutExerciseId = trigger.getAttribute("data-we");
+  if (!setId || !workoutExerciseId) return;
+  openSetTypeSheet(workoutExerciseId, setId);
 }
 
 async function refreshTrainees() {
@@ -373,8 +463,10 @@ function renderSelectedExercises() {
             idx === 0
               ? "—"
               : `${sets[idx - 1].weight_kg} × ${sets[idx - 1].reps}`;
-          return `<tr class="done-row">
-            <td>${s.set_number}</td>
+          const rowTone = idx % 2 === 1 ? " done-row--alt" : "";
+          const wid = e.workoutExerciseId;
+          return `<tr class="done-row${rowTone}">
+            <td class="set-num-cell" data-set-sheet="${s.id}" data-we="${wid}"><button type="button" class="set-num-btn" data-set-sheet="${s.id}" data-we="${wid}" onclick="window.openSetSheetByIds('${wid}','${s.id}')" aria-label="Set options">${escapeHtml(setNumberLabel(s))}</button></td>
             <td>${escapeHtml(String(prev))}</td>
             <td>${s.weight_kg}</td>
             <td>${s.reps}</td>
@@ -389,7 +481,10 @@ function renderSelectedExercises() {
       return `<article class="hevy-exercise-card" data-we-id="${wid}">
         <div class="hevy-exercise-head">
           <h4 class="hevy-exercise-name">${escapeHtml(e.name)}</h4>
+          <button type="button" class="hevy-kebab-btn" aria-label="Exercise options">⋮</button>
         </div>
+        <p class="hevy-notes-hint">Add notes here...</p>
+        <p class="hevy-rest-line">◷ Rest Timer: 2min 45s</p>
         <div class="hevy-set-table-wrap">
           <table class="hevy-set-table">
             <thead>
@@ -404,7 +499,7 @@ function renderSelectedExercises() {
             <tbody>
               ${doneRows}
               <tr class="hevy-add-set-row">
-                <td>${nextNum}</td>
+                <td><button type="button" class="set-num-btn set-num-btn-latest" data-last-set-sheet="${wid}" onclick="window.openLatestSetSheet('${wid}')" aria-label="Open latest set options">${nextNum}</button></td>
                 <td>${escapeHtml(prevForNew)}</td>
                 <td><input type="number" min="0" step="0.5" class="hevy-cell-input" placeholder="0" data-weight="${wid}" /></td>
                 <td><input type="number" min="0" step="1" class="hevy-cell-input" placeholder="0" data-reps="${wid}" /></td>
@@ -444,6 +539,84 @@ function renderSelectedExercises() {
       }
     });
   });
+
+  host.removeEventListener("click", handleSavedSetNumberClick);
+  host.addEventListener("click", handleSavedSetNumberClick);
+
+}
+
+function closeSetTypeSheet() {
+  const overlay = $("#set-type-sheet-overlay");
+  if (!overlay) return;
+  overlay.classList.add("hidden");
+  activeSetSheetTarget = null;
+}
+
+function openSetTypeSheet(workoutExerciseId, setId) {
+  const overlay = $("#set-type-sheet-overlay");
+  if (!overlay) return;
+  activeSetSheetTarget = { workoutExerciseId, setId };
+  const closeBtn = $("#set-type-sheet-close");
+  if (closeBtn) {
+    closeBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSetTypeSheet();
+    };
+  }
+  const panel = $("#set-type-sheet-panel");
+  if (panel) {
+    panel.querySelectorAll("[data-set-type]").forEach((btn) => {
+      btn.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!activeSetSheetTarget) return;
+        const setType = btn.getAttribute("data-set-type");
+        if (!setType) return;
+        await updateSetTypeAndRefresh(activeSetSheetTarget.setId, setType);
+        closeSetTypeSheet();
+      };
+    });
+    const removeBtn = $("#set-type-remove-btn");
+    if (removeBtn) {
+      removeBtn.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!activeSetSheetTarget) return;
+        const ok = await removeSetAndRefresh(activeSetSheetTarget.setId);
+        if (ok) closeSetTypeSheet();
+      };
+    }
+  }
+  overlay.classList.remove("hidden");
+}
+
+async function updateSetTypeAndRefresh(setId, setType) {
+  const res = await api(`/api/sets/${encodeURIComponent(setId)}`, {
+    method: "PUT",
+    authRequired: true,
+    body: JSON.stringify({ set_type: setType }),
+  });
+  if (!res.ok) {
+    setAuthMessage("Could not update set type.", false);
+    return;
+  }
+  await syncSelectedExercisesFromWorkout();
+}
+
+async function removeSetAndRefresh(setId) {
+  const res = await api(`/api/sets/${encodeURIComponent(setId)}`, {
+    method: "DELETE",
+    authRequired: true,
+  });
+  if (!res.ok && res.status !== 404) {
+    setAuthMessage(`Could not remove set ${setId} (${res.status}).`, false);
+    await syncSelectedExercisesFromWorkout();
+    return false;
+  }
+  // 404 can happen when a duplicate/remove race already removed the same set; treat as success.
+  await syncSelectedExercisesFromWorkout();
+  return true;
 }
 
 async function syncSelectedExercisesFromWorkout() {
@@ -456,7 +629,12 @@ async function syncSelectedExercisesFromWorkout() {
     selectedWorkoutExercises.push({
       workoutExerciseId: ex.workout_exercise_id,
       name: ex.exercise?.name || "Exercise",
-      sets: Array.isArray(ex.sets) ? ex.sets : [],
+      sets: Array.isArray(ex.sets)
+        ? ex.sets.map((s) => ({
+            ...s,
+            set_type: s.set_type || (s.is_warmup ? "warmup" : "normal"),
+          }))
+        : [],
     });
   }
   renderSelectedExercises();
@@ -767,6 +945,15 @@ $("#btn-add-selected-exercise").addEventListener("click", async () => {
 
 $("#wd-close").addEventListener("click", () => closeWorkoutDetail());
 
+$("#set-type-sheet-overlay")?.addEventListener("click", (e) => {
+  const targetEl = clickTargetElement(e);
+  if (!targetEl) return;
+
+  if (targetEl.id === "set-type-sheet-overlay") {
+    closeSetTypeSheet();
+  }
+});
+
 $("#form-wd-add-exercise").addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = $("#wd-ex-name")?.value?.trim() || "";
@@ -785,3 +972,4 @@ $("#form-wd-add-exercise").addEventListener("submit", async (e) => {
 });
 
 bootstrapSession();
+bindSetSheetDelegationOnce();

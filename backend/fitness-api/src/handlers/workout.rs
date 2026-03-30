@@ -1,5 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
+    http::StatusCode,
     Json,
 };
 use serde::Deserialize;
@@ -9,7 +10,7 @@ use crate::auth::CoachUser;
 use crate::error::AppResult;
 use crate::models::{
     AddExerciseToWorkoutRequest, AddExerciseToWorkoutResponse, AddSetRequest,
-    CreateTraineeWorkoutRequest, CreateWorkoutRequest, Set, Workout, WorkoutDetail,
+    CreateTraineeWorkoutRequest, CreateWorkoutRequest, Set, UpdateSetTypeRequest, Workout, WorkoutDetail,
     WorkoutDetailExercise,
 };
 use crate::repositories::{ExercisePrRow, ExerciseVolumeRow};
@@ -60,6 +61,28 @@ pub async fn add_set(
         .add_set(auth.id, workout_exercise_id, req)
         .await?;
     Ok(Json(s))
+}
+
+pub async fn update_set_type(
+    auth: CoachUser,
+    State(state): State<AppState>,
+    Path(set_id): Path<Uuid>,
+    Json(req): Json<UpdateSetTypeRequest>,
+) -> AppResult<Json<Set>> {
+    let s = state
+        .workout_service
+        .update_set_type(auth.id, set_id, req.set_type)
+        .await?;
+    Ok(Json(s))
+}
+
+pub async fn delete_set_row(
+    auth: CoachUser,
+    State(state): State<AppState>,
+    Path(set_id): Path<Uuid>,
+) -> AppResult<StatusCode> {
+    state.workout_service.delete_set_by_id(auth.id, set_id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn create_workout_for_trainee(

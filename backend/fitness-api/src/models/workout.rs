@@ -52,6 +52,7 @@ pub struct SetSummary {
     pub reps: i32,
     pub weight_kg: f64,
     pub is_warmup: bool,
+    pub set_type: String,
 }
 
 #[derive(Debug, Serialize)]

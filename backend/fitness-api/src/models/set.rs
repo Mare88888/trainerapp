@@ -12,7 +12,13 @@ pub struct Set {
     pub reps: i32,
     pub weight_kg: f64,
     pub is_warmup: bool,
+    pub set_type: String,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct UpdateSetTypeRequest {
+    pub set_type: String,
 }
 
 #[derive(Debug, Deserialize, Validate)]

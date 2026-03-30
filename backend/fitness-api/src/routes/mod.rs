@@ -1,4 +1,4 @@
-use axum::routing::{get, post};
+use axum::routing::{get, post, put};
 use axum::Router;
 
 use crate::handlers;
@@ -50,6 +50,10 @@ pub fn api_routes() -> Router<AppState> {
         .route(
             "/api/workout-exercises/{workout_exercise_id}/sets",
             post(handlers::add_set),
+        )
+        .route(
+            "/api/sets/{set_id}",
+            put(handlers::update_set_type).delete(handlers::delete_set_row),
         )
         .route("/api/stats/volume", get(handlers::volume_stats))
         .route("/api/stats/prs", get(handlers::personal_records))

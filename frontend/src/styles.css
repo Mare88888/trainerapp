@@ -408,6 +408,9 @@ body {
 .workout-logger-card {
   padding: 0;
   overflow: hidden;
+  background: #050506;
+  border-color: #121216;
+  border-radius: 18px;
 }
 
 .workout-logger-head {
@@ -417,8 +420,8 @@ body {
   justify-content: space-between;
   gap: 0.75rem 1rem;
   padding: 1rem 1.1rem;
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-soft);
+  background: #050506;
+  border-bottom: 1px solid #18181d;
 }
 
 .workout-logger-titles {
@@ -432,15 +435,15 @@ body {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: #707078;
   margin-bottom: 0.25rem;
 }
 
 .workout-title-input {
   width: 100%;
   font: inherit;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.35rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--text);
   background: transparent;
@@ -465,18 +468,19 @@ body {
 
 .workout-logger-hint {
   margin: 0;
-  padding: 0.65rem 1.1rem 0;
+  padding: 0.35rem 1.1rem 0.7rem;
+  color: #707078;
 }
 
 .hevy-exercise-stack {
-  padding: 0 0.65rem 1rem;
+  padding: 0 0.8rem 1rem;
 }
 
 .hevy-exercise-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  margin-bottom: 0.65rem;
+  background: #070709;
+  border: 1px solid #121216;
+  border-radius: 16px;
+  margin-bottom: 0.85rem;
   overflow: hidden;
 }
 
@@ -485,15 +489,47 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.75rem 0.85rem;
-  border-bottom: 1px solid var(--border-soft);
+  padding: 0.9rem 0.95rem 0.2rem;
+  border-bottom: none;
 }
 
 .hevy-exercise-name {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.85rem;
+  line-height: 1.15;
+  font-weight: 700;
   letter-spacing: -0.02em;
+  color: #1b9dff;
+}
+
+.hevy-kebab-btn {
+  border: none;
+  background: transparent;
+  color: #7a7a82;
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.hevy-kebab-btn:hover {
+  background: #17171b;
+}
+
+.hevy-notes-hint {
+  margin: 0;
+  padding: 0 0.95rem 0.35rem;
+  color: #6f6f77;
+  font-size: 1.05rem;
+}
+
+.hevy-rest-line {
+  margin: 0;
+  padding: 0 0.95rem 0.65rem;
+  color: #1b9dff;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #18181d;
 }
 
 .hevy-set-table-wrap {
@@ -503,44 +539,77 @@ body {
 .hevy-set-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8125rem;
+  font-size: 1.05rem;
 }
 
 .hevy-set-table thead th {
   text-align: center;
-  padding: 0.45rem 0.35rem;
-  font-size: 0.65rem;
-  font-weight: 600;
+  padding: 0.7rem 0.45rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
-  border-bottom: 1px solid var(--border-soft);
-  background: rgba(0, 0, 0, 0.25);
+  color: #72727b;
+  border-bottom: 1px solid #18181d;
+  background: transparent;
 }
 
 .hevy-set-table thead th:first-child,
 .hevy-set-table tbody td:first-child {
   text-align: center;
-  width: 2.25rem;
-  color: var(--muted);
+  width: 2.5rem;
+  color: #f0f0f5;
   font-weight: 600;
 }
+
+.set-num-btn {
+  border: none;
+  background: transparent;
+  color: #f0f0f5;
+  font: inherit;
+  font-weight: 700;
+  width: 100%;
+  height: 2.35rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.set-num-cell {
+  padding: 0.2rem 0.15rem !important;
+  cursor: pointer;
+}
+
+.set-num-btn:hover {
+  background: #23232a;
+}
+
+.set-num-btn-latest {
+  color: #c7c7cf;
+}
+
 
 .hevy-set-table thead th:nth-child(2),
 .hevy-set-table tbody td:nth-child(2) {
   text-align: center;
-  color: var(--muted);
-  min-width: 4.5rem;
+  color: #83838d;
+  min-width: 5rem;
 }
 
 .hevy-set-table tbody td {
-  padding: 0.35rem 0.35rem;
-  border-bottom: 1px solid var(--border-soft);
+  padding: 0.75rem 0.45rem;
+  border-bottom: 1px solid #18181d;
   vertical-align: middle;
 }
 
 .hevy-set-table tbody tr.hevy-add-set-row td {
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid #18181d;
+}
+
+.done-row--alt {
+  background: #17171d;
 }
 
 .hevy-set-table tbody tr.done-row td:nth-child(3),
@@ -554,14 +623,14 @@ body {
   width: 100%;
   min-width: 3.25rem;
   box-sizing: border-box;
-  padding: 0.45rem 0.4rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--card-2);
-  color: var(--text);
+  padding: 0.55rem 0.45rem;
+  border-radius: 10px;
+  border: 1px solid #2d2d33;
+  background: #121216;
+  color: #f2f2f7;
   font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -581,12 +650,12 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: #3a3a3c;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #696972;
   color: #fff;
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   font-weight: 700;
 }
 
@@ -600,38 +669,127 @@ body {
   justify-content: center;
   gap: 0.45rem;
   width: 100%;
-  margin: 0;
-  padding: 0.72rem 1rem;
-  border: none;
-  border-top: 1px solid var(--border-soft);
-  border-radius: 0 0 11px 11px;
-  background: #2c2c2e;
-  color: var(--text);
+  width: calc(100% - 1.6rem);
+  margin: 0.8rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #2a2a30;
+  border-radius: 14px;
+  background: #141418;
+  color: #f2f2f7;
   font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .hevy-add-set-btn:hover {
-  background: #3a3a3c;
+  background: #1e1e24;
 }
 
 .hevy-add-set-btn:active {
-  background: #48484a;
+  background: #25252c;
 }
 
 .hevy-add-set-icon {
-  font-size: 1.2rem;
+  font-size: 1.45rem;
   font-weight: 700;
   line-height: 1;
   opacity: 0.95;
 }
 
 .hevy-add-set-row td {
-  padding: 0.5rem 0.35rem;
-  background: rgba(255, 255, 255, 0.02);
+  padding: 0.65rem 0.45rem;
+  background: #0d0d10;
+}
+
+.set-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0.6rem;
+}
+
+.set-sheet {
+  width: min(560px, 100%);
+  background: #121216;
+  border: 1px solid #2a2a31;
+  border-radius: 18px;
+  padding: 0.6rem 0.85rem 0.95rem;
+}
+
+.set-sheet-handle {
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: #5f5f68;
+  margin: 0.2rem auto 0.45rem;
+}
+
+.set-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.55rem;
+}
+
+.set-sheet-head h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.set-sheet-close {
+  border: none;
+  background: transparent;
+  color: #a6a6af;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.set-sheet-actions {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.set-sheet-btn {
+  border: 1px solid #2a2a31;
+  border-radius: 12px;
+  background: #1a1a20;
+  color: #f2f2f7;
+  text-align: left;
+  padding: 0.7rem 0.85rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.set-sheet-btn:hover {
+  background: #24242b;
+}
+
+.set-sheet-btn.danger {
+  color: #ff6b64;
+  border-color: #4a2525;
+  background: #251516;
+}
+
+#btn-open-exercise-picker.btn-hevy-ghost.sm {
+  width: 100%;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid #158ce9;
+  background: #0f8feb;
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.8rem 1rem;
+}
+
+#btn-open-exercise-picker.btn-hevy-ghost.sm:hover {
+  background: #2199f2;
 }
 
 .picker-toolbar {

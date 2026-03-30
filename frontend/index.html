@@ -262,7 +262,7 @@
                 </div>
                 <div class="workout-logger-actions">
                   <button id="btn-create-workout" type="button" class="btn-hevy-primary sm">Start</button>
-                  <button id="btn-open-exercise-picker" type="button" class="btn-hevy-ghost sm">+ Exercise</button>
+                  <button id="btn-open-exercise-picker" type="button" class="btn-hevy-ghost sm">+ Add Exercise</button>
                 </div>
               </div>
               <p class="muted small workout-logger-hint">Start the session, add exercises, enter kg and reps, then tap <strong>Add Set</strong>.</p>
@@ -340,6 +340,23 @@
           </div>
         </section>
       </main>
+    </div>
+
+    <div id="set-type-sheet-overlay" class="set-sheet-overlay hidden" aria-hidden="true">
+      <div id="set-type-sheet-panel" class="set-sheet" role="dialog" aria-label="Set type">
+        <div class="set-sheet-handle" aria-hidden="true"></div>
+        <div class="set-sheet-head">
+          <h4>Set Type</h4>
+          <button id="set-type-sheet-close" type="button" class="set-sheet-close" aria-label="Close">✕</button>
+        </div>
+        <div class="set-sheet-actions">
+          <button type="button" class="set-sheet-btn" data-set-type="warmup">Warm up set</button>
+          <button type="button" class="set-sheet-btn" data-set-type="normal">Normal set</button>
+          <button type="button" class="set-sheet-btn" data-set-type="failure">Failure set</button>
+          <button type="button" class="set-sheet-btn" data-set-type="drop">Drop set</button>
+          <button id="set-type-remove-btn" type="button" class="set-sheet-btn danger" data-set-remove="1">Remove set</button>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="/src/main.js"></script>
